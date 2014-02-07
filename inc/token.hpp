@@ -9,75 +9,60 @@
 namespace vm {
 
 
-/**
- * Order is important, tokens MUST be sorted by length!
- * Not best solustion, but it simplifies scanner code little bit.
- *
- * May be rewrite with templates later?
- **/
-
-#define FOR_PUNCTUATORS(TOKEN)	\
-		TOKEN(lor, "||", 4)				\
-		TOKEN(land, "&&", 5)			\
-		TOKEN(eq, "==", 9)				\
-		TOKEN(neq, "!=", 9)				\
-		TOKEN(ge, ">=", 10)				\
-		TOKEN(le, "<=", 10)				\
-		TOKEN(range, "..", 9)			\
-		TOKEN(incrset, "+=", 14)		\
-		TOKEN(decrset, "-=", 14)		\
-		TOKEN(lparen, "(", 0)			\
-		TOKEN(rparen, ")", 0)			\
-		TOKEN(lbrace, "{", 0)			\
-		TOKEN(rbrace, "}", 0)			\
-		TOKEN(assign, "=", 2)			\
-		TOKEN(aor, "|", 4)				\
-		TOKEN(aand, "&", 5)				\
-		TOKEN(axor, "^", 5)				\
-		TOKEN(lnot, "!", 0)				\
-		TOKEN(gt, ">", 10)				\
-		TOKEN(lt, "<", 10)				\
-		TOKEN(add, "+", 12)				\
-		TOKEN(sub, "-", 12)				\
-		TOKEN(mul, "*", 13)				\
-		TOKEN(div, "/", 13)				\
-		TOKEN(mod, "%", 13)				\
-		TOKEN(comma, ",", 0)			\
-		TOKEN(semi, ";", 0)
-
-#define FOR_UTILITIES(TOKEN)	\
-		TOKEN(eof, "")					\
-		TOKEN(ident, "")				\
-		TOKEN(double_l, "")				\
-		TOKEN(int_l, "")				\
-		TOKEN(string_l, "")
-
-#define FOR_KEYWORDS(KEYWORD)	\
-		KEYWORD(double_t, "double")			\
-		KEYWORD(int_t, "int")				\
-		KEYWORD(string_t, "string")			\
-		KEYWORD(for_kw, "for")				\
-		KEYWORD(while_kw, "while")			\
-		KEYWORD(if_kw, "if")				\
-		KEYWORD(print_kw, "print")			\
-		KEYWORD(function_kw, "function")	\
-		KEYWORD(native_kw, "native")		\
-		KEYWORD(return_kw, "return")
+#define FOR_TOKENS(TOKEN)	\
+		TOKEN(undef, "", 0)					\
+		TOKEN(lor, "||", 4)					\
+		TOKEN(land, "&&", 5)				\
+		TOKEN(eq, "==", 9)					\
+		TOKEN(neq, "!=", 9)					\
+		TOKEN(ge, ">=", 10)					\
+		TOKEN(le, "<=", 10)					\
+		TOKEN(range, "..", 9)				\
+		TOKEN(incrset, "+=", 14)			\
+		TOKEN(decrset, "-=", 14)			\
+		TOKEN(lparen, "(", 0)				\
+		TOKEN(rparen, ")", 0)				\
+		TOKEN(lbrace, "{", 0)				\
+		TOKEN(rbrace, "}", 0)				\
+		TOKEN(assign, "=", 2)				\
+		TOKEN(aor, "|", 4)					\
+		TOKEN(aand, "&", 5)					\
+		TOKEN(axor, "^", 5)					\
+		TOKEN(lnot, "!", 0)					\
+		TOKEN(gt, ">", 10)					\
+		TOKEN(lt, "<", 10)					\
+		TOKEN(add, "+", 12)					\
+		TOKEN(sub, "-", 12)					\
+		TOKEN(mul, "*", 13)					\
+		TOKEN(div, "/", 13)					\
+		TOKEN(mod, "%", 13)					\
+		TOKEN(comma, ",", 0)				\
+		TOKEN(semi, ";", 0)					\
+		TOKEN(eof, "", 0)					\
+		TOKEN(ident, "", 0)					\
+		TOKEN(double_l, "", 0)				\
+		TOKEN(int_l, "", 0)					\
+		TOKEN(string_l, "", 0)				\
+		TOKEN(double_t, "double", 0)		\
+		TOKEN(int_t, "int", 0)				\
+		TOKEN(string_t, "string", 0)		\
+		TOKEN(for_kw, "for", 0)				\
+		TOKEN(while_kw, "while", 0)			\
+		TOKEN(if_kw, "if", 0)				\
+		TOKEN(print_kw, "print", 0)			\
+		TOKEN(function_kw, "function", 0)	\
+		TOKEN(native_kw, "native", 0)		\
+		TOKEN(return_kw, "return", 0)
+	
 
 	class Token
 	{
 	public:
 		enum Kind
 		{
-			undef,
 
 			#define KIND(k, s, p) k,
-			FOR_PUNCTUATORS(KIND)
-			#undef KIND
-
-			#define KIND(k, s) k,
-			FOR_KEYWORDS(KIND)
-			FOR_UTILITIES(KIND)
+			FOR_TOKENS(KIND)
 			#undef KIND
 
 			token_count

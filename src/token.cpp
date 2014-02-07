@@ -6,37 +6,28 @@
 namespace vm
 {
 
+	static char const *token_values[] = {
+		#define VALUE(k, s, p) s,
+		FOR_TOKENS(VALUE)
+		#undef VALUE
+		""
+	};
+
 	char const * Token::get_token_value(Token::Kind kind) noexcept
 	{
 		assert(kind > Token::undef && kind < Token::token_count);
 
-		switch (kind)
-		{
-		default: return "";
-
-		#define CASE(t, s, p) case Token::t : return s;
-		FOR_PUNCTUATORS(CASE)
-		#undef CASE
-
-		#define CASE(t, s) case Token::t : return s;
-		FOR_KEYWORDS(CASE)
-		#undef CASE
-		}
-		return NULL;
+		return token_values[static_cast<size_t>(kind)];
 	}
 
 	Token::Kind Token::get_token_kind(char const * value) noexcept
 	{
-		if (!value)
+		if (!value || !strcmp(value, ""))
 				return Token::undef;
 
-		#define CASE(t, s, p) if (!strcmp(s, value)) return Token::t;
-		FOR_PUNCTUATORS(CASE)
-		#undef CASE
-
-		#define CASE(t, s) if (!strcmp(s, value)) return Token::t;
-		FOR_KEYWORDS(CASE)
-		#undef CASE
+		#define KIND(t, s, p) if (!strcmp(s, value)) return Token::t;
+		FOR_TOKENS(KIND)
+		#undef KIND
 
 		return Token::undef;
 	}

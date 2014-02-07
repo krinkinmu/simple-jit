@@ -214,12 +214,12 @@ namespace vm
 			do
 			{
 				#define CASE(t, s, p)	\
-					if (!strncmp(s, val, strlen(s)))	\
-					{ 									\
-						kind = Token::t;				\
-						break;							\
+					if (strlen(s) && !strncmp(s, val, strlen(s)))	\
+					{ 												\
+						kind = Token::t;							\
+						break;										\
 					}
-				FOR_PUNCTUATORS(CASE)
+				FOR_TOKENS(CASE)
 				#undef CASE
 			}
 			while (0);

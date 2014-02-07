@@ -28,7 +28,7 @@ $(OBJ):
 	mkdir -p $(OBJ)
 
 check: $(OBJ) $(JIT) $(LEX)
-	echo "SCANNER TESTS:"
+	@echo "SCANNER TESTS:"
 	bash ./tst/lex.sh ./lex
 
 -include $(OBJECTS:%.o=%.d)

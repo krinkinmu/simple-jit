@@ -32,15 +32,11 @@ namespace vm
 			{
 				switch (token.kind())
 				{
-				#define CASE(k, s, p) case Token::k: out << #k << "\n"; break;
-				FOR_PUNCTUATORS(CASE)
-				#undef CASE
-
-				#define CASE(k, s) case Token::k: out << #k << "\n"; break;
-				FOR_KEYWORDS(CASE)
-				FOR_UTILITIES(CASE)
-				#undef CASE
 				default: assert(0);
+
+				#define KIND(k, s, p) case Token::k: out << #k << "\n"; break;
+				FOR_TOKENS(KIND)
+				#undef KIND
 				}
 			}
 			return out;
