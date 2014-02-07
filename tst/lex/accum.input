@@ -1,0 +1,6 @@
+int accum(int from, int to) {
+	int sum = 0;
+	for (int value in from..to) {
+		sum += value;
+	}
+}
