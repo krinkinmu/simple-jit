@@ -12,10 +12,10 @@ namespace vm
 
 		switch (kind)
 		{
-		default: assert(0);
+		default: return "";
 
 		#define CASE(t, s, p) case Token::t : return s;
-		FOR_TOKENS(CASE)
+		FOR_PUNCTUATORS(CASE)
 		#undef CASE
 
 		#define CASE(t, s) case Token::t : return s;
@@ -27,10 +27,11 @@ namespace vm
 
 	Token::Kind Token::get_token_kind(char const * value) noexcept
 	{
-		if (!value) return Token::undef;
+		if (!value)
+				return Token::undef;
 
 		#define CASE(t, s, p) if (!strcmp(s, value)) return Token::t;
-		FOR_TOKENS(CASE)
+		FOR_PUNCTUATORS(CASE)
 		#undef CASE
 
 		#define CASE(t, s) if (!strcmp(s, value)) return Token::t;

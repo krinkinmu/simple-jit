@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include <scanner.hpp>
 
 namespace vm
@@ -208,88 +210,19 @@ namespace vm
 			}
 
 			Token::Kind kind(Token::undef);
-			switch (ch)
+			char const val[3] = { ch, peek_char(1), '\0' };
+			do
 			{
-			case '(':
-				kind = Token::lparen;
-				break;
-			case ')':
-				kind = Token::rparen;
-				break;
-			case '{':
-				kind = Token::lbrace;
-				break;
-			case '}':
-				kind = Token::rbrace;
-				break;
-			case ',':
-				kind = Token::comma;
-				break;
-			case ';':
-				kind = Token::semi;
-				break;
-			case '*':
-				kind = Token::mul;
-				break;
-			case '/':
-				kind = Token::div;
-				break;
-			case '%':
-				kind = Token::mod;
-				break;
-			case '.':
-				if (peek_char(1) == '.')
-					kind = Token::range;
-				break;
-			case '=':
-				if (peek_char(1) == '=')
-					kind = Token::eq;
-				else
-					kind = Token::assign;
-				break;
-			case '|':
-				if (peek_char(1) == '|')
-					kind = Token::lor;
-				else
-					kind = Token::aor;
-				break;
-			case '&':
-				if (peek_char(1) == '&')
-					kind = Token::land;
-				else
-					kind = Token::aand;
-				break;
-			case '<':
-				if (peek_char(1) == '=')
-					kind = Token::le;
-				else
-					kind = Token::lt;
-				break;
-			case '>':
-				if (peek_char(1) == '=')
-					kind = Token::ge;
-				else
-					kind = Token::gt;
-				break;
-			case '!':
-				if (peek_char(1) == '=')
-					kind = Token::neq;
-				else
-					kind = Token::lnot;
-				break;
-			case '+':
-				if (peek_char(1) == '=')
-					kind = Token::incrset;
-				else
-					kind = Token::add;
-				break;
-			case '-':
-				if (peek_char(1) == '=')
-					kind = Token::decrset;
-				else
-					kind = Token::sub;
-				break;
+				#define CASE(t, s, p)	\
+					if (!strncmp(s, val, strlen(s)))	\
+					{ 									\
+						kind = Token::t;				\
+						break;							\
+					}
+				FOR_PUNCTUATORS(CASE)
+				#undef CASE
 			}
+			while (0);
 
 			if (kind == Token::undef)
 			{
