@@ -135,16 +135,12 @@ namespace vm
 		while (detail::is_digit(peek_char()))
 			value += get_char();
 
-		if (peek_char() == '.' || peek_char() == 'e')
+		if (peek_char() == 'e' || peek_char() == '.')
 		{
 			kind = Token::double_l;
 			if (peek_char() == 'e' && (peek_char(1) == '-' || peek_char(1) == '+'))
-			{
 				value += get_char();
-				value += get_char();
-				if (!detail::is_digit(peek_char()))
-					error("digit expected", current_location());
-			}
+			value += get_char();
 
 			while (detail::is_digit(peek_char()))
 				value += get_char();

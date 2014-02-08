@@ -35,13 +35,16 @@ int main(int argc, char **argv)
 
 		if (!read_file(argv[index], code))
 		{
-			std::cout << "ERROR" << std::endl;
+			std::cout << "ERROR: cannot read file " << argv[index] << std::endl;
 			return 0;
 		}
 
 		if (!vm::Scanner().scan(code, tokens, status))
 		{
-			std::cout << "ERROR: " << status.message() << std::endl;
+			std::cout << "ERROR(" << status.location().line()
+						<< ":" << status.location().offset() << "): "
+						<< status.message() << std::endl;
+			tokens.dump(std::cout);
 			return 0;
 		}
 

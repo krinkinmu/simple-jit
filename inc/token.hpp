@@ -28,6 +28,7 @@ namespace vm {
 		TOKEN(aor, "|", 4)					\
 		TOKEN(aand, "&", 5)					\
 		TOKEN(axor, "^", 5)					\
+		TOKEN(anot, "~", 0)					\
 		TOKEN(lnot, "!", 0)					\
 		TOKEN(gt, ">", 10)					\
 		TOKEN(lt, "<", 10)					\
