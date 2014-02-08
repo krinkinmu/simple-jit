@@ -1,0 +1,4 @@
+int and = 0 && 1;
+int or = 0 || 1;
+int nand = !and;
+int nor = !or;

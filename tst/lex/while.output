@@ -1,0 +1,16 @@
+int_t
+ident
+assign
+int_l
+semi
+while_kw
+lparen
+ident
+gt
+int_l
+rparen
+ident
+decrset
+int_l
+semi
+eof

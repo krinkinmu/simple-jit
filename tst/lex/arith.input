@@ -1,0 +1,12 @@
+int bit0 = 1;
+int bit1 = 2;
+int bit2 = 4;
+int bit3 = 8;
+
+int bits0123 = bit0 | bit1 | bit2 | bit3;
+int not_bits0123 = ~bits0123;
+int rem = not_bits0123 % bits0123;
+
+double pi = 3.14;
+double len = 2 * pi * 10;
+double area = pi * 10 * 10;
