@@ -183,10 +183,10 @@ namespace vm
 			skip_whitespaces();
 			skip_comment();
 
-			if (peek_char() == '\0')
+			char const ch = peek_char();
+			if (ch == '\0')
 				continue;
 
-			char const ch = peek_char();
 			if (detail::is_letter(ch))
 			{
 				scan_ident();
