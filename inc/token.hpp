@@ -47,6 +47,7 @@ namespace vm {
 		TOKEN(double_t, "double", 0)		\
 		TOKEN(int_t, "int", 0)				\
 		TOKEN(string_t, "string", 0)		\
+		TOKEN(void_t, "void", 0)			\
 		TOKEN(in_kw, "in", 0)				\
 		TOKEN(for_kw, "for", 0)				\
 		TOKEN(while_kw, "while", 0)			\

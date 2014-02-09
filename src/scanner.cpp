@@ -230,9 +230,6 @@ namespace vm
 			skip_chars(tok.value().size());
 			tokens_->push_back(std::move(tok));
 		}
-
-		if (is_ok())
-			tokens_->push_back(Token(Token::eof));
 	}
 
 	void Scanner::reset(TokenList * tokens, Status * status, std::string const * code) noexcept
