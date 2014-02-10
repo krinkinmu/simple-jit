@@ -2,6 +2,7 @@
 #define __AST_HPP__
 
 #include <initializer_list>
+#include <iterator>
 #include <utility>
 #include <cstddef>
 #include <memory>
@@ -105,22 +106,98 @@ namespace vm
 		Scope *owner_;
 	};
 
+	namespace details
+	{
+
+		template <typename MapIt>
+		class BaseIterator
+			: public std::iterator<
+				typename std::iterator_traits<MapIt>::iterator_category,
+				typename std::iterator_traits<MapIt>::value_type::second_type>
+		{
+			typedef std::iterator<
+				typename std::iterator_traits<MapIt>::iterator_category,
+				typename std::iterator_traits<MapIt>::value_type::second_type> BaseType;
+
+		public:
+			BaseIterator() noexcept = default;
+			BaseIterator(BaseIterator const &) noexcept = default;
+			BaseIterator(BaseIterator &&) noexcept = default;
+			BaseIterator & operator=(BaseIterator const &) noexcept = default;
+			BaseIterator & operator=(BaseIterator &&) noexcept = default;
+
+			BaseIterator & operator++() noexcept
+			{
+				++iterator_;
+				return *this;
+			}
+
+			BaseIterator & operator--() noexcept
+			{
+				--iterator_;
+				return *this;
+			}
+
+			BaseIterator operator++(int) const noexcept
+			{
+				BaseIterator iter(*this);
+				++iterator_;
+				return iter;
+			}
+
+			BaseIterator operator--(int) const noexcept
+			{
+				BaseIterator iter(*this);
+				--iterator_;
+				return iter;
+			}
+
+			typename BaseType::reference operator*() const noexcept
+			{ return iterator->second; }
+
+			typename BaseType::pointer operator->() const noexcept
+			{ return &iterator->second; }
+
+			friend bool operator==(BaseIterator<MapIt> const & left, BaseIterator<MapIt> const & right)
+			{ return left.iterator_ == right.iterator_; }
+
+			friend bool operator!=(BaseIterator<MapIt> const & left, BaseIterator<MapIt> const & right)
+			{ return !(left == right); }
+
+		private:
+			Iterator iterator_;
+		};
+
+	}
+
 	class Scope
 	{
+		typedef std::map<std::string, Variable> Variables;
+		typedef std::map<std::string, Function> Functions;
+
 	public:
+		typedef details::BaseIterator<Variables::const_iterator> variables_iterator;
+		typedef details::BaseIterator<Functions::const_iterator> functions_iterator;
+
 		Scope(Scope *owner);
 
-		Variable const lookup_variable(std::string const & name) noexcept;
-		Function const lookup_function(std::string const & name) noexcept;
+		variables_iterator const lookup_variable(std::string const & name) noexcept;
+		functions_iterator const lookup_function(std::string const & name) noexcept;
 
-		bool define_variable(Variable variable, bool replace = false);
-		bool define_function(Function function, bool replace = false);
+		std::pair<variables_iterator, bool> const define_variable(Variable variable, bool replace = false);
+		std::pair<functions_iterator, bool> const define_function(Function function, bool replace = false);
 
 		Scope * owner();
 
+		variables_iterator const variables_begin() const;
+		variables_iterator const variables_end() const;
+		
+		functions_iterator const functions_begin() const;
+		functions_iterator const functions_end() const;
+
 	private:
-		std::map<std::string, Variable> variables_;
-		std::map<std::string, Function> functions_;
+		Variables variables_;
+		Functions functions_;
 		Scope *owner_;
 	};
 
