@@ -4,8 +4,10 @@
 #include <initializer_list>
 #include <utility>
 #include <cstddef>
+#include <memory>
 #include <vector>
 #include <string>
+#include <map>
 
 #include <common.hpp>
 
@@ -24,20 +26,23 @@ namespace vm
 	class Scope;
 	class Visitor;
 
-	class Return;
-	class Store;
-	class Load;
-	class Call;
-	class Print;
-	class NativeCall;
-	class UnaryExpression;
-	class BinaryExpression;
-	class StringLiteral;
-	class IntLiteral;
-	class DoubleLiteral;
-	class ForLoop;
-	class WhileLoop;
-	class IfStatement;
+	class ReturnNode;
+	class LoadNode;
+	class StoreNode;
+	class CallNode;
+	class PrintNode;
+	class NativeCallNode;
+	class UnaryExprNode;
+	class BinaryExprNode;
+	class StringLitNode;
+	class IntLitNode;
+	class DoubleLitNode;
+	class BlockNode;
+	class ForNode;
+	class WhileNode;
+	class IfNode;
+	class FunctionNode;
+	class VariableNode;
 
 	class Signature
 	{
@@ -45,9 +50,7 @@ namespace vm
 		typedef std::pair<Type, std::string> ParamType;
 		typedef std::vector<ParamType> ParametersType;
 
-		Signature(ParametersType params = ParametersType())
-			: params_(std::move(params))
-		{ }
+		Signature(ParametersType params = ParametersType());
 
 		template <typename T>
 		Signature(std::initializer_list<T> params)
@@ -77,36 +80,57 @@ namespace vm
 	class Variable
 	{
 	public:
-		Variable(std::string name, Type type, Scope *scope)
-			: name_(std::move(name)), type_(type), scope_(scope)
-		{ }
+		Variable(std::shared_ptr<VariableNode> vptr, Scope *scope);
 
 		std::string const & name() const noexcept;
-		Type type() const noexcept;
 		Scope * owner() noexcept;
-
-		Variable(Variable const &) = default;
-		Variable(Variable &&) = default;
-
-		Variable & operator=(Variable const &) = delete;
-		Variable & operator=(Variable &&) = delete;
+		std::shared_ptr<VariableNode> definition() noexcept;
 
 	private:
-		std::string name_;
-		Type type_;
+		std::shared_ptr<VariableNode> def_;
+		Scope *owner_;
+	};
+
+	class Function
+	{
+	public:
+		Function(std::shared_ptr<FunctionNode> fptr, Scope *owner) noexcept;
+
+		std::string const & name() const noexcept;
+		Scope * owner() noexcept;
+		std::shared_ptr<FunctionNode> definition() noexcept;
+
+	private:
+		std::shared_ptr<FunctionNode> def_;
+		Scope *owner_;
+	};
+
+	class Scope
+	{
+	public:
+		Scope(Scope *owner);
+
+		Variable const lookup_variable(std::string const & name) noexcept;
+		Function const lookup_function(std::string const & name) noexcept;
+
+		bool define_variable(Variable variable, bool replace = false);
+		bool define_function(Function function, bool replace = false);
+
+		Scope * owner();
+
+	private:
+		std::map<std::string, Variable> variables_;
+		std::map<std::string, Function> functions_;
 		Scope *owner_;
 	};
 
 	class ASTNode
 	{
 	public:
-		ASTNode(Location start = Location(), Location finish = Location())
-			: start_(std::move(start)), finish_(std::move(finish))
-		{ }
+		ASTNode(Location start = Location(), Location finish = Location());
 
 		ASTNode(ASTNode const &) = delete;
 		ASTNode(ASTNode &&) = delete;
-
 		ASTNode & operator=(ASTNode const &) = delete;
 		ASTNode & operator=(ASTNode &&) = delete;
 
