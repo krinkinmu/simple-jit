@@ -1,6 +1,7 @@
 #ifndef __AST_HPP__
 #define __AST_HPP__
 
+#include <initializer_list>
 #include <utility>
 #include <cstddef>
 #include <vector>
@@ -44,8 +45,13 @@ namespace vm
 		typedef std::pair<Type, std::string> ParamType;
 		typedef std::vector<ParamType> ParametersType;
 
-		Signature(Type return_type, ParametersType params = ParametersType())
-			: return_type_(return_type), params_(std::move(params))
+		Signature(ParametersType params = ParametersType())
+			: params_(std::move(params))
+		{ }
+
+		template <typename T>
+		Signature(std::initializer_list<T> params)
+			: params_(params)
 		{ }
 
 		Signature(Signature const &) = default;
@@ -65,7 +71,6 @@ namespace vm
 		ParamType const & operator[](size_t index) const noexcept;
 
 	private:
-		Type return_type_;
 		ParametersType params_;
 	};
 
