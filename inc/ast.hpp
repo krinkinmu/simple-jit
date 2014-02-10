@@ -5,6 +5,7 @@
 #include <iterator>
 #include <utility>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <string>
@@ -27,17 +28,17 @@ namespace vm
 	class Scope;
 	class Visitor;
 
+	class BinaryExprNode;
+	class UnaryExprNode;
+	class StringLitNode;
+	class IntLitNode;
+	class DoubleLitNode;
 	class ReturnNode;
 	class LoadNode;
 	class StoreNode;
 	class CallNode;
 	class PrintNode;
 	class NativeCallNode;
-	class UnaryExprNode;
-	class BinaryExprNode;
-	class StringLitNode;
-	class IntLitNode;
-	class DoubleLitNode;
 	class BlockNode;
 	class ForNode;
 	class WhileNode;
@@ -66,13 +67,13 @@ namespace vm
 
 		Type return_type() const noexcept;
 
-		size_t size() const noexcept;
+		std::size_t size() const noexcept;
 		bool empty() const noexcept;
 
 		ParametersType::const_iterator begin() const noexcept;
 		ParametersType::const_iterator end() const noexcept;
 
-		ParamType const & operator[](size_t index) const noexcept;
+		ParamType const & operator[](std::size_t index) const noexcept;
 
 	private:
 		ParametersType params_;
@@ -204,7 +205,8 @@ namespace vm
 	class ASTNode
 	{
 	public:
-		ASTNode(Location start = Location(), Location finish = Location());
+		ASTNode(Location start = Location(),
+				Location finish = Location()) noexcept;
 
 		ASTNode(ASTNode const &) = delete;
 		ASTNode(ASTNode &&) = delete;
@@ -223,6 +225,93 @@ namespace vm
 	private:
 		Location start_;
 		Location finish_;
+	};
+
+	class BinaryExprNode : public ASTNode
+	{
+	public:
+		BinaryExprNode(Token::Kind kind,
+						ASTNode *left,
+						ASTNode *right,
+						Location start = Location(),
+						Location finish = Location()) noexcept;
+
+		Token::Kind kind() const noexcept;
+		ASTNode * left() const noexcept;
+		ASTNode * right() const noexcept;
+
+		virtual void visit(Visitor & visitor);
+		virtual void visit_children(Visitor & visitor);
+	private:
+		Token::Kind kind_;
+		ASTNode *left_;
+		ASTNode *right_;
+	};
+
+	class UnaryExprNode : public ASTNode
+	{
+	public:
+		UnaryExprNode(Token::Kind kind,
+						ASTNode * node,
+						Location start = Location(),
+						Location finish = Location()) noexcept;
+
+		Token::Kind kind() const noexcept;
+		ASTNode *operand() const noexcept;
+
+		virtual void visit(Visitor & visitor);
+		virtual void visit_children(Visitor & visitor);
+	private:
+		Token::Kind kind_;
+		ASTNode *operand_;
+	};
+
+	class StringLitNode : public ASTNode
+	{
+	public:
+		StringLitNode(std::string value,
+						Location start = Location(),
+						Location finish = Location());
+
+		std::string const & value() const noexcept;
+
+		virtual void visit(Visitor & visitor);
+		virtual void visit_children(Visitor & visitor);
+
+	private:
+		std::string value_;
+	};
+
+	class IntLitNode : public ASTNode
+	{
+	public:
+		IntLitNode(std::intmax_t value,
+					Location start = Location(),
+					Location finish = Location());
+
+		std::intmax_t value() const noexcept;
+
+		virtual void visit(Visitor & visitor);
+		virtual void visit_children(Visitor & visitor);
+
+	private:
+		std::intmax_t value_;
+	};
+
+	class DoubleLitNode : public ASTNode
+	{
+	public:
+		DoubleLitNode(double value,
+						Location start = Location(),
+						Location finsih = Location());
+
+		double value() const noexcept;
+
+		virtual void visit(Visitor & visitor);
+		virtual void visit_children(Visitor & visitor);
+
+	private:
+		double value_;
 	};
 
 }
