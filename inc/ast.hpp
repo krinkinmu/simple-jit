@@ -12,6 +12,7 @@
 #include <map>
 
 #include <common.hpp>
+#include <token.hpp>
 
 namespace vm
 {
@@ -29,6 +30,8 @@ namespace vm
 	class Block;
 	class Visitor;
 
+	class ASTNode;
+
 	class BinaryExprNode;
 	class UnaryExprNode;
 	class StringLitNode;
@@ -36,15 +39,26 @@ namespace vm
 	class DoubleLitNode;
 	class LoadNode;
 	class StoreNode;
-	class ReturnNode;
-	class NativeCallNode;
-	class CallNode;
-	class PrintNode;
 	class ForNode;
 	class WhileNode;
-	class IfNode;
-	class FunctionNode;
-	class VariableNode;
+	class NativeCallNode;
+	class ReturnNode {};
+	class CallNode {};
+	class PrintNode {};
+	class IfNode {};
+	class FunctionNode
+	{
+		std::string name_;
+	public:
+		std::string const & name() const noexcept { return name_; }
+	};
+
+	class VariableNode
+	{
+		std::string name_;
+	public:
+		std::string const & name() const noexcept { return name_; }
+	};
 
 	namespace detail
 	{
@@ -53,17 +67,21 @@ namespace vm
 		class BaseIterator
 			: public std::iterator<
 				typename std::iterator_traits<MapIt>::iterator_category,
-				typename ValueType>
+				ValueType>
 		{
 			typedef std::iterator<
 				typename std::iterator_traits<MapIt>::iterator_category,
-				typename ValueType> BaseType;
+				ValueType> BaseType;
 
 		public:
-			BaseIterator() noexcept = default;
-			BaseIterator(BaseIterator const &) noexcept = default;
+			BaseIterator(MapIt iterator)
+				: iterator_(iterator)
+			{ }
+
+			BaseIterator() = default;
+			BaseIterator(BaseIterator const &) = default;
 			BaseIterator(BaseIterator &&) noexcept = default;
-			BaseIterator & operator=(BaseIterator const &) noexcept = default;
+			BaseIterator & operator=(BaseIterator const &) = default;
 			BaseIterator & operator=(BaseIterator &&) noexcept = default;
 
 			BaseIterator & operator++() noexcept
@@ -93,19 +111,19 @@ namespace vm
 			}
 
 			ValueType & operator*() const noexcept
-			{ return iterator->second; }
+			{ return iterator_->second; }
 
 			ValueType * operator->() const noexcept
-			{ return &iterator->second; }
+			{ return &iterator_->second; }
 
-			friend bool operator==(BaseIterator<MapIt> const & left, BaseIterator<MapIt> const & right)
+			friend bool operator==(BaseIterator<MapIt, ValueType> const & left, BaseIterator<MapIt, ValueType> const & right)
 			{ return left.iterator_ == right.iterator_; }
 
-			friend bool operator!=(BaseIterator<MapIt> const & left, BaseIterator<MapIt> const & right)
+			friend bool operator!=(BaseIterator<MapIt, ValueType> const & left, BaseIterator<MapIt, ValueType> const & right)
 			{ return !(left == right); }
 
 		private:
-			Iterator iterator_;
+			MapIt iterator_;
 		};
 
 		class Signature
@@ -114,12 +132,7 @@ namespace vm
 			typedef std::pair<Type, std::string> ParamType;
 			typedef std::vector<ParamType> ParametersType;
 
-			Signature(ParametersType params = ParametersType());
-
-			template <typename T>
-			Signature(std::initializer_list<T> params)
-				: params_(params)
-			{ }
+			Signature(Type rtype, std::string name, ParametersType params = ParametersType());
 
 			Signature(Signature const &) = default;
 			Signature(Signature &&) = default;
@@ -128,9 +141,8 @@ namespace vm
 			Signature & operator=(Signature &&) = delete;
 
 			Type return_type() const noexcept;
-
-			std::size_t size() const noexcept;
-			bool empty() const noexcept;
+			std::string const & name() const noexcept;
+			std::size_t parameters_number() const noexcept;
 
 			ParametersType::const_iterator begin() const noexcept;
 			ParametersType::const_iterator end() const noexcept;
@@ -138,6 +150,8 @@ namespace vm
 			ParamType const & operator[](std::size_t index) const noexcept;
 
 		private:
+			Type return_type_;
+			std::string name_;
 			ParametersType params_;
 		};
 
@@ -146,75 +160,75 @@ namespace vm
 		{
 		public:
 			ScopedDefinition(DefinitionType *def, ScopeType *scope)
-				: def_(def), scope_(scope)
+				: def_(def), owner_(scope)
 			{ }
 
 			ScopedDefinition(ScopedDefinition const &) noexcept = default;
 			ScopedDefinition(ScopedDefinition &&) noexcept = default;
-			ScopedDefinition & operator=(ScopdedDefinition const &) noexcept = default;
-			ScopdeDefinition & operator=(ScopdeDefinition &&) noexcept = default;
+			ScopedDefinition & operator=(ScopedDefinition const &) noexcept = default;
+			ScopedDefinition & operator=(ScopedDefinition &&) noexcept = default;
 
 			template <typename DefTy, typename ScTy>
 			ScopedDefinition(ScopedDefinition<DefTy, ScTy> const & other) noexcept
-				: def_(other.definition()), scope_(other.owner())
+				: def_(other.definition()), owner_(other.owner())
 			{ }
 
 			template <typename DefTy, typename ScTy>
-			ScopdeDefinition(ScopedDefinition<DefTy, ScTy> && other) noexcept
-				: def_(other.definition()), scope_(other.owner())
+			ScopedDefinition(ScopedDefinition<DefTy, ScTy> && other) noexcept
+				: def_(other.definition()), owner_(other.owner())
 			{ }
 
-			template <typename DefTy, typename ScTy>
-			ScopedDefinition & operator=(ScopdeDefinition<DefTy, ScTy> const & other) noexcept
-			{
-				def_ = other.definition();
-				scope_ = other.owner();
-				return *this;
-			}
+			template <typename DefTy, typename ScTy> ScopedDefinition &
+				operator=(ScopedDefinition<DefTy, ScTy> const & other) noexcept
+				{
+					def_ = other.definition();
+					owner_ = other.owner();
+					return *this;
+				}
 
-			template <typename DefTy, typename ScTy>
-			ScopedDefinition & operator=(ScopedDefinition<DefTy, ScTy> && other) noexcept
-			{
-				def_ = other.definition();
-				scope_ = other.owner();
-				return *this;
-			}
+			template <typename DefTy, typename ScTy> ScopedDefinition &
+				operator=(ScopedDefinition<DefTy, ScTy> && other) noexcept
+				{
+					def_ = other.definition();
+					owner_ = other.owner();
+					return *this;
+				}
 
 			std::string const & name() const noexcept
 			{ return def_->name(); }
 
 			typename std::remove_const<ScopeType>::type const *
-					owner() const noexcept
-			{ return owner_; }
+				owner() const noexcept
+				{ return owner_; }
 
 			typename std::remove_const<ScopeType>::type *
-					owner() noexcept
-			{ return owner_; }
+				owner() noexcept
+				{ return owner_; }
 
 			typename std::remove_const<DefinitionType>::type const *
-					definition() const noexcept
-			{ return def_; }
+				definition() const noexcept
+				{ return def_; }
 
 			typename std::remove_const<DefinitionType>::type *
-					definition() noexcept
-			{ return def_; }
+				definition() noexcept
+				{ return def_; }
 
 		private:
 			DefinitionType *def_;
-			ScopeType *scope_;
+			ScopeType *owner_;
 		};
-
-		typedef ScopedDefinition<VariableNode, Scope> Variable;
-		typedef ScopedDefinition<FunctionNode, Scope> Function;
-
-		typedef ScopedDefinition<VariableNode const, Scope const> ConstVariable;
-		typedef ScopedDefinition<FunctionNode const, Scope const> ConstFunction;
 
 	}
 
+	typedef detail::ScopedDefinition<VariableNode, Scope> Variable;
+	typedef detail::ScopedDefinition<FunctionNode, Scope> Function;
+
+	typedef detail::ScopedDefinition<VariableNode const, Scope const> ConstVariable;
+	typedef detail::ScopedDefinition<FunctionNode const, Scope const> ConstFunction;
+
 	class Block
 	{
-	typedef std::vector<ASTNode *> InstructionsType;
+		typedef std::vector<ASTNode *> InstructionsType;
 	public:
 		typedef InstructionsType::const_iterator const_iterator;
 		typedef InstructionsType::iterator iterator;
@@ -246,17 +260,17 @@ namespace vm
 
 	class Scope
 	{
-		typedef std::map<std::string, detail::Variable> Variables;
-		typedef std::map<std::string, detail::Function> Functions;
+		typedef std::map<std::string, Variable> Variables;
+		typedef std::map<std::string, Function> Functions;
 
 	public:
 		typedef detail::BaseIterator<Variables::iterator, Variable> variable_iterator;
 		typedef detail::BaseIterator<Functions::iterator, Function> function_iterator;
 
-		typedef detail::BaseIterator<Variables::iterator, Variable const> const_variable_iterator;
-		typedef detail::BaseIterator<Functions::iterator, Function const> const_function_iterator;
+		typedef detail::BaseIterator<Variables::const_iterator, Variable const> const_variable_iterator;
+		typedef detail::BaseIterator<Functions::const_iterator, Function const> const_function_iterator;
 
-		Scope(Scope *owner);
+		Scope(Scope *owner = nullptr);
 		virtual ~Scope();
 
 		variable_iterator const lookup_variable(std::string const & name) noexcept;
@@ -265,23 +279,23 @@ namespace vm
 		function_iterator const lookup_function(std::string const & name) noexcept;
 		const_function_iterator const lookup_function(std::string const & name) const noexcept;
 
-		std::pair<variable_iterator, bool> const define_variable(Variable variable, bool replace = false);
-		std::pair<function_iterator, bool> const define_function(Function function, bool replace = false);
+		std::pair<variable_iterator, bool> const define_variable(Variable variable, bool replace = false) noexcept;
+		std::pair<function_iterator, bool> const define_function(Function function, bool replace = false) noexcept;
 
-		Scope * owner();
-		Scope const * owner() const;
+		Scope * owner() noexcept;
+		Scope const * owner() const noexcept;
 
-		variable_iterator const variables_begin();
-		variable_iterator const variables_end();
+		variable_iterator const variables_begin() noexcept;
+		variable_iterator const variables_end() noexcept;
 
-		const_variable_iterator const variables_begin() const;
-		const_variable_iterator const variables_end() const;
+		const_variable_iterator const variables_begin() const noexcept;
+		const_variable_iterator const variables_end() const noexcept;
 		
-		function_iterator const functions_begin();
-		function_iterator const functions_end();
+		function_iterator const functions_begin() noexcept;
+		function_iterator const functions_end() noexcept;
 
-		const_function_iterator const functions_begin() const;
-		const_function_iterator const functions_end() const;
+		const_function_iterator const functions_begin() const noexcept;
+		const_function_iterator const functions_end() const noexcept;
 
 	private:
 		Variables variables_;
@@ -302,17 +316,17 @@ namespace vm
 
 		virtual ~ASTNode() { }
 
-		virtual void visit(ASTVisitor & visitor) { }
-		virtual void visit_children(ASTVisitor & visitor) { }
+		virtual void visit(Visitor &) { }
+		virtual void visit_children(Visitor &) { }
 
-		virtual void visit(ASTVisitor const & visitor) { }
-		virtual void visit_children(ASTVisitor const & visitor) { }
+		virtual void visit(Visitor const &) { }
+		virtual void visit_children(Visitor const &) { }
 
-		virtual void visit(ASTVisitor & visitor) const { }
-		virtual void visit_children(ASTVisitor & visitor) const { }
+		virtual void visit(Visitor &) const { }
+		virtual void visit_children(Visitor &) const { }
 
-		virtual void visit(ASTVisitor const & visitor) const { }
-		virtual void visit_children(ASTVisitor const & visitor) const { }
+		virtual void visit(Visitor const &) const { }
+		virtual void visit_children(Visitor const &) const { }
 
 		Location const & start() const noexcept;
 		Location const & finish() const noexcept;
@@ -381,14 +395,14 @@ namespace vm
 	class IntLitNode : public ASTNode
 	{
 	public:
-		IntLitNode(std::intmax_t value,
+		IntLitNode(std::int64_t value,
 					Location start = Location(),
 					Location finish = Location()) noexcept;
 
-		std::intmax_t value() const noexcept;
+		std::int64_t value() const noexcept;
 
 	private:
-		std::intmax_t value_;
+		std::int64_t value_;
 	};
 
 	class DoubleLitNode : public ASTNode
@@ -407,21 +421,21 @@ namespace vm
 	class LoadNode : public ASTNode
 	{
 	public:
-		LoadNode(detail::Variable variable,
+		LoadNode(Variable variable,
 					Location start = Location(),
 					Location finish = Location()) noexcept;
 
-		detail::Variable variable() noexcept;
-		detail::ConstVariable variable() const noexcept;
+		Variable const variable() noexcept;
+		ConstVariable const variable() const noexcept;
 
 	private:
-		detail::Variable variable_;
+		Variable variable_;
 	};
 
 	class StoreNode : public ASTNode
 	{
 	public:
-		StoreNode(detail::Variable variable,
+		StoreNode(Variable variable,
 					ASTNode *expr,
 					Token::Kind kind,
 					Location start = Location(),
@@ -429,18 +443,18 @@ namespace vm
 
 		virtual ~StoreNode();
 
-		detail::Variable variable() noexcept;
-		detail::ConstVariable variable() const noexcept;
+		Variable const variable() noexcept;
+		ConstVariable const variable() const noexcept;
 
 		ASTNode * expression() noexcept;
 		ASTNode const * expression() const noexcept;
 
 		Token::Kind kind() const noexcept;
 
-	pivate:
-		detail::Variable variable_;
-		ASTNode *expression_;
+	private:
+		Variable variable_;
 		Token::Kind kind_;
+		ASTNode *expression_;
 	};
 
 	class NativeCallNode : public ASTNode
@@ -454,7 +468,6 @@ namespace vm
 		Type return_type() const noexcept;
 
 		std::size_t parameters_number() const noexcept;
-		Type type_at(std::size_t index) const noexcept;
 		Type operator[](std::size_t index) const noexcept;
 
 	private:
