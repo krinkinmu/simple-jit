@@ -2,11 +2,11 @@
 #define __AST_HPP__
 
 #include <initializer_list>
+#include <type_traits>
 #include <iterator>
 #include <utility>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <vector>
 #include <string>
 #include <map>
@@ -26,6 +26,7 @@ namespace vm
 	};
 
 	class Scope;
+	class Block;
 	class Visitor;
 
 	class BinaryExprNode;
@@ -33,92 +34,30 @@ namespace vm
 	class StringLitNode;
 	class IntLitNode;
 	class DoubleLitNode;
-	class ReturnNode;
 	class LoadNode;
 	class StoreNode;
+	class ReturnNode;
+	class NativeCallNode;
 	class CallNode;
 	class PrintNode;
-	class NativeCallNode;
-	class BlockNode;
 	class ForNode;
 	class WhileNode;
 	class IfNode;
 	class FunctionNode;
 	class VariableNode;
 
-	class Signature
-	{
-	public:
-		typedef std::pair<Type, std::string> ParamType;
-		typedef std::vector<ParamType> ParametersType;
-
-		Signature(ParametersType params = ParametersType());
-
-		template <typename T>
-		Signature(std::initializer_list<T> params)
-			: params_(params)
-		{ }
-
-		Signature(Signature const &) = default;
-		Signature(Signature &&) = default;
-
-		Signature & operator=(Signature const &) = delete;
-		Signature & operator=(Signature &&) = delete;
-
-		Type return_type() const noexcept;
-
-		std::size_t size() const noexcept;
-		bool empty() const noexcept;
-
-		ParametersType::const_iterator begin() const noexcept;
-		ParametersType::const_iterator end() const noexcept;
-
-		ParamType const & operator[](std::size_t index) const noexcept;
-
-	private:
-		ParametersType params_;
-	};
-
-	class Variable
-	{
-	public:
-		Variable(std::shared_ptr<VariableNode> vptr, Scope *scope);
-
-		std::string const & name() const noexcept;
-		Scope * owner() noexcept;
-		std::shared_ptr<VariableNode> definition() noexcept;
-
-	private:
-		std::shared_ptr<VariableNode> def_;
-		Scope *owner_;
-	};
-
-	class Function
-	{
-	public:
-		Function(std::shared_ptr<FunctionNode> fptr, Scope *owner) noexcept;
-
-		std::string const & name() const noexcept;
-		Scope * owner() noexcept;
-		std::shared_ptr<FunctionNode> definition() noexcept;
-
-	private:
-		std::shared_ptr<FunctionNode> def_;
-		Scope *owner_;
-	};
-
-	namespace details
+	namespace detail
 	{
 
-		template <typename MapIt>
+		template <typename MapIt, typename ValueType>
 		class BaseIterator
 			: public std::iterator<
 				typename std::iterator_traits<MapIt>::iterator_category,
-				typename std::iterator_traits<MapIt>::value_type::second_type>
+				typename ValueType>
 		{
 			typedef std::iterator<
 				typename std::iterator_traits<MapIt>::iterator_category,
-				typename std::iterator_traits<MapIt>::value_type::second_type> BaseType;
+				typename ValueType> BaseType;
 
 		public:
 			BaseIterator() noexcept = default;
@@ -153,10 +92,10 @@ namespace vm
 				return iter;
 			}
 
-			typename BaseType::reference operator*() const noexcept
+			ValueType & operator*() const noexcept
 			{ return iterator->second; }
 
-			typename BaseType::pointer operator->() const noexcept
+			ValueType * operator->() const noexcept
 			{ return &iterator->second; }
 
 			friend bool operator==(BaseIterator<MapIt> const & left, BaseIterator<MapIt> const & right)
@@ -169,32 +108,180 @@ namespace vm
 			Iterator iterator_;
 		};
 
+		class Signature
+		{
+		public:
+			typedef std::pair<Type, std::string> ParamType;
+			typedef std::vector<ParamType> ParametersType;
+
+			Signature(ParametersType params = ParametersType());
+
+			template <typename T>
+			Signature(std::initializer_list<T> params)
+				: params_(params)
+			{ }
+
+			Signature(Signature const &) = default;
+			Signature(Signature &&) = default;
+
+			Signature & operator=(Signature const &) = delete;
+			Signature & operator=(Signature &&) = delete;
+
+			Type return_type() const noexcept;
+
+			std::size_t size() const noexcept;
+			bool empty() const noexcept;
+
+			ParametersType::const_iterator begin() const noexcept;
+			ParametersType::const_iterator end() const noexcept;
+
+			ParamType const & operator[](std::size_t index) const noexcept;
+
+		private:
+			ParametersType params_;
+		};
+
+		template <typename DefinitionType, typename ScopeType>
+		class ScopedDefinition
+		{
+		public:
+			ScopedDefinition(DefinitionType *def, ScopeType *scope)
+				: def_(def), scope_(scope)
+			{ }
+
+			ScopedDefinition(ScopedDefinition const &) noexcept = default;
+			ScopedDefinition(ScopedDefinition &&) noexcept = default;
+			ScopedDefinition & operator=(ScopdedDefinition const &) noexcept = default;
+			ScopdeDefinition & operator=(ScopdeDefinition &&) noexcept = default;
+
+			template <typename DefTy, typename ScTy>
+			ScopedDefinition(ScopedDefinition<DefTy, ScTy> const & other) noexcept
+				: def_(other.definition()), scope_(other.owner())
+			{ }
+
+			template <typename DefTy, typename ScTy>
+			ScopdeDefinition(ScopedDefinition<DefTy, ScTy> && other) noexcept
+				: def_(other.definition()), scope_(other.owner())
+			{ }
+
+			template <typename DefTy, typename ScTy>
+			ScopedDefinition & operator=(ScopdeDefinition<DefTy, ScTy> const & other) noexcept
+			{
+				def_ = other.definition();
+				scope_ = other.owner();
+				return *this;
+			}
+
+			template <typename DefTy, typename ScTy>
+			ScopedDefinition & operator=(ScopedDefinition<DefTy, ScTy> && other) noexcept
+			{
+				def_ = other.definition();
+				scope_ = other.owner();
+				return *this;
+			}
+
+			std::string const & name() const noexcept
+			{ return def_->name(); }
+
+			typename std::remove_const<ScopeType>::type const *
+					owner() const noexcept
+			{ return owner_; }
+
+			typename std::remove_const<ScopeType>::type *
+					owner() noexcept
+			{ return owner_; }
+
+			typename std::remove_const<DefinitionType>::type const *
+					definition() const noexcept
+			{ return def_; }
+
+			typename std::remove_const<DefinitionType>::type *
+					definition() noexcept
+			{ return def_; }
+
+		private:
+			DefinitionType *def_;
+			ScopeType *scope_;
+		};
+
+		typedef ScopedDefinition<VariableNode, Scope> Variable;
+		typedef ScopedDefinition<FunctionNode, Scope> Function;
+
+		typedef ScopedDefinition<VariableNode const, Scope const> ConstVariable;
+		typedef ScopedDefinition<FunctionNode const, Scope const> ConstFunction;
+
 	}
+
+	class Block
+	{
+	typedef std::vector<ASTNode *> InstructionsType;
+	public:
+		typedef InstructionsType::const_iterator const_iterator;
+		typedef InstructionsType::iterator iterator;
+
+		Block(Scope *scope);
+		virtual ~Block();
+
+		Scope *scope() noexcept;
+		Scope const *scope() const noexcept;
+
+		iterator begin() noexcept;
+		iterator end() noexcept;
+
+		const_iterator begin() const noexcept;
+		const_iterator end() const noexcept;
+
+		std::size_t size() const noexcept;
+		bool empty() const noexcept;
+
+		ASTNode * operator[](std::size_t index) noexcept;
+		ASTNode const * operator[](std::size_t index) const noexcept;
+
+		void push_back(ASTNode * node);
+
+	private:
+		std::vector<ASTNode *> instructions_;
+		Scope *scope_;
+	};
 
 	class Scope
 	{
-		typedef std::map<std::string, Variable> Variables;
-		typedef std::map<std::string, Function> Functions;
+		typedef std::map<std::string, detail::Variable> Variables;
+		typedef std::map<std::string, detail::Function> Functions;
 
 	public:
-		typedef details::BaseIterator<Variables::const_iterator> variables_iterator;
-		typedef details::BaseIterator<Functions::const_iterator> functions_iterator;
+		typedef detail::BaseIterator<Variables::iterator, Variable> variable_iterator;
+		typedef detail::BaseIterator<Functions::iterator, Function> function_iterator;
+
+		typedef detail::BaseIterator<Variables::iterator, Variable const> const_variable_iterator;
+		typedef detail::BaseIterator<Functions::iterator, Function const> const_function_iterator;
 
 		Scope(Scope *owner);
+		virtual ~Scope();
 
-		variables_iterator const lookup_variable(std::string const & name) noexcept;
-		functions_iterator const lookup_function(std::string const & name) noexcept;
+		variable_iterator const lookup_variable(std::string const & name) noexcept;
+		const_variable_iterator const lookup_variable(std::string const & name) const noexcept;
 
-		std::pair<variables_iterator, bool> const define_variable(Variable variable, bool replace = false);
-		std::pair<functions_iterator, bool> const define_function(Function function, bool replace = false);
+		function_iterator const lookup_function(std::string const & name) noexcept;
+		const_function_iterator const lookup_function(std::string const & name) const noexcept;
+
+		std::pair<variable_iterator, bool> const define_variable(Variable variable, bool replace = false);
+		std::pair<function_iterator, bool> const define_function(Function function, bool replace = false);
 
 		Scope * owner();
+		Scope const * owner() const;
 
-		variables_iterator const variables_begin() const;
-		variables_iterator const variables_end() const;
+		variable_iterator const variables_begin();
+		variable_iterator const variables_end();
+
+		const_variable_iterator const variables_begin() const;
+		const_variable_iterator const variables_end() const;
 		
-		functions_iterator const functions_begin() const;
-		functions_iterator const functions_end() const;
+		function_iterator const functions_begin();
+		function_iterator const functions_end();
+
+		const_function_iterator const functions_begin() const;
+		const_function_iterator const functions_end() const;
 
 	private:
 		Variables variables_;
@@ -213,11 +300,19 @@ namespace vm
 		ASTNode & operator=(ASTNode const &) = delete;
 		ASTNode & operator=(ASTNode &&) = delete;
 
-		virtual ~ASTNode()
-		{ }
+		virtual ~ASTNode() { }
 
-		virtual void visit(ASTVisitor & visitor) = 0;
-		virtual void visit_children(ASTVisitor & visitor) = 0;
+		virtual void visit(ASTVisitor & visitor) { }
+		virtual void visit_children(ASTVisitor & visitor) { }
+
+		virtual void visit(ASTVisitor const & visitor) { }
+		virtual void visit_children(ASTVisitor const & visitor) { }
+
+		virtual void visit(ASTVisitor & visitor) const { }
+		virtual void visit_children(ASTVisitor & visitor) const { }
+
+		virtual void visit(ASTVisitor const & visitor) const { }
+		virtual void visit_children(ASTVisitor const & visitor) const { }
 
 		Location const & start() const noexcept;
 		Location const & finish() const noexcept;
@@ -236,12 +331,16 @@ namespace vm
 						Location start = Location(),
 						Location finish = Location()) noexcept;
 
-		Token::Kind kind() const noexcept;
-		ASTNode * left() const noexcept;
-		ASTNode * right() const noexcept;
+		virtual ~BinaryExprNode();
 
-		virtual void visit(Visitor & visitor);
-		virtual void visit_children(Visitor & visitor);
+		Token::Kind kind() const noexcept;
+
+		ASTNode const * left() const noexcept;
+		ASTNode const * right() const noexcept;
+
+		ASTNode * left() noexcept;
+		ASTNode * right() noexcept;
+
 	private:
 		Token::Kind kind_;
 		ASTNode *left_;
@@ -252,15 +351,15 @@ namespace vm
 	{
 	public:
 		UnaryExprNode(Token::Kind kind,
-						ASTNode * node,
+						ASTNode *node,
 						Location start = Location(),
 						Location finish = Location()) noexcept;
+		virtual ~UnaryExprNode();
 
 		Token::Kind kind() const noexcept;
-		ASTNode *operand() const noexcept;
+		ASTNode *operand() noexcept;
+		ASTNode const * operand() const noexcept;
 
-		virtual void visit(Visitor & visitor);
-		virtual void visit_children(Visitor & visitor);
 	private:
 		Token::Kind kind_;
 		ASTNode *operand_;
@@ -275,9 +374,6 @@ namespace vm
 
 		std::string const & value() const noexcept;
 
-		virtual void visit(Visitor & visitor);
-		virtual void visit_children(Visitor & visitor);
-
 	private:
 		std::string value_;
 	};
@@ -287,12 +383,9 @@ namespace vm
 	public:
 		IntLitNode(std::intmax_t value,
 					Location start = Location(),
-					Location finish = Location());
+					Location finish = Location()) noexcept;
 
 		std::intmax_t value() const noexcept;
-
-		virtual void visit(Visitor & visitor);
-		virtual void visit_children(Visitor & visitor);
 
 	private:
 		std::intmax_t value_;
@@ -303,15 +396,116 @@ namespace vm
 	public:
 		DoubleLitNode(double value,
 						Location start = Location(),
-						Location finsih = Location());
+						Location finsih = Location()) noexcept;
 
 		double value() const noexcept;
 
-		virtual void visit(Visitor & visitor);
-		virtual void visit_children(Visitor & visitor);
-
 	private:
 		double value_;
+	};
+
+	class LoadNode : public ASTNode
+	{
+	public:
+		LoadNode(detail::Variable variable,
+					Location start = Location(),
+					Location finish = Location()) noexcept;
+
+		detail::Variable variable() noexcept;
+		detail::ConstVariable variable() const noexcept;
+
+	private:
+		detail::Variable variable_;
+	};
+
+	class StoreNode : public ASTNode
+	{
+	public:
+		StoreNode(detail::Variable variable,
+					ASTNode *expr,
+					Token::Kind kind,
+					Location start = Location(),
+					Location finish = Location()) noexcept;
+
+		virtual ~StoreNode();
+
+		detail::Variable variable() noexcept;
+		detail::ConstVariable variable() const noexcept;
+
+		ASTNode * expression() noexcept;
+		ASTNode const * expression() const noexcept;
+
+		Token::Kind kind() const noexcept;
+
+	pivate:
+		detail::Variable variable_;
+		ASTNode *expression_;
+		Token::Kind kind_;
+	};
+
+	class NativeCallNode : public ASTNode
+	{
+	public:
+		NativeCallNode(detail::Signature signature,
+						Location start = Location(),
+						Location finish = Location());
+
+		std::string const & name() const noexcept;
+		Type return_type() const noexcept;
+
+		std::size_t parameters_number() const noexcept;
+		Type type_at(std::size_t index) const noexcept;
+		Type operator[](std::size_t index) const noexcept;
+
+	private:
+		detail::Signature signature_;
+	};
+
+	class ForNode : public ASTNode
+	{
+	public:
+		ForNode(Variable variable,
+				ASTNode *expr,
+				Block *body,
+				Location start = Location(),
+				Location finish = Location());
+
+		virtual ~ForNode();
+
+		Variable variable() noexcept;
+		ConstVariable variable() const noexcept;
+
+		ASTNode * expression() noexcept;
+		ASTNode const * expression() const noexcept;
+
+		Block * body() noexcept;
+		Block const * body() const noexcept;
+
+	private:
+		Variable variable_;
+		ASTNode * expr_;
+		Block *body_;
+	};
+
+	class WhileNode : public ASTNode
+	{
+	public:
+		WhileNode(ASTNode * expr,
+					Block * body,
+					Location start = Location(),
+					Location finish = Location());
+
+		virtual ~WhileNode();
+
+		ASTNode * expression() noexcept;
+		ASTNode const * expression() const noexcept;
+
+		Block * body() noexcept;
+		Block const * body() const noexcept;
+
+	private:
+		ASTNode * expression_;
+		Block * body_;
 	};
 
 }
