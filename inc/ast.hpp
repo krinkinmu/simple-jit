@@ -45,7 +45,7 @@ namespace vm
 	class ReturnNode;
 	class IfNode;
 	class CallNode;
-	class PrintNode {};
+	class PrintNode;
 	class FunctionNode
 	{
 		std::string name_;
@@ -586,6 +586,29 @@ namespace vm
 
 	private:
 		std::string name_;
+		std::vector<ASTNode *> params_;
+	};
+
+	class PrintNode : public ASTNode
+	{
+	public:
+		PrintNode(std::vector<ASTNode *> params,
+					Location start = Location(),
+					Location finish = Location());
+
+		virtual ~PrintNode();
+
+		std::size_t parameters_number() const noexcept;
+
+		ASTNode * at(std::size_t index) noexcept;
+		ASTNode const * at(std::size_t index) const noexcept;
+
+		ASTNode * operator[](std::size_t index) noexcept;
+		ASTNode const * operator[](std::size_t index) const noexcept;
+
+		void push_back(ASTNode * expr);
+
+	private:
 		std::vector<ASTNode *> params_;
 	};
 

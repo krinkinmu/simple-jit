@@ -45,6 +45,8 @@ namespace vm
 
 	}
 
+
+
 	Block::Block(Scope *scope)
 		: scope_(scope)
 	{ assert(scope_); }
@@ -87,6 +89,7 @@ namespace vm
 		assert(node);
 		instructions_.push_back(node);
 	}
+
 
 
 	Scope::Scope(Scope *owner)
@@ -166,6 +169,7 @@ namespace vm
 	{ return Scope::const_function_iterator(functions_.end()); }
 
 
+
 	ASTNode::ASTNode(Location start, Location finish) noexcept
 		: start_(std::move(start)), finish_(std::move(finish))
 	{ }
@@ -175,6 +179,7 @@ namespace vm
 
 	Location const & ASTNode::finish() const noexcept
 	{ return finish_; }
+
 
 
 	BinaryExprNode::BinaryExprNode(Token::Kind kind,
@@ -219,6 +224,8 @@ namespace vm
 	ASTNode * BinaryExprNode::right() noexcept
 	{ return right_; }
 
+
+
 	UnaryExprNode::UnaryExprNode(Token::Kind kind,
 									ASTNode *node,
 									Location start,
@@ -246,6 +253,7 @@ namespace vm
 	{ return operand_; }
 
 
+
 	StringLitNode::StringLitNode(std::string value,
 									Location start,
 									Location finish)
@@ -255,6 +263,7 @@ namespace vm
 
 	std::string const & StringLitNode::value() const noexcept
 	{ return value_; }
+
 
 
 	IntLitNode::IntLitNode(std::int64_t value,
@@ -268,6 +277,7 @@ namespace vm
 	{ return value_; }
 
 
+
 	DoubleLitNode::DoubleLitNode(double value,
 									Location start,
 									Location finish) noexcept
@@ -277,6 +287,8 @@ namespace vm
 
 	double DoubleLitNode::value() const noexcept
 	{ return value_; }
+
+
 
 	LoadNode::LoadNode(Variable variable,
 						Location start,
@@ -290,6 +302,8 @@ namespace vm
 
 	ConstVariable const LoadNode::variable() const noexcept
 	{ return variable_; }
+
+
 
 	StoreNode::StoreNode(Variable variable,
 							ASTNode *expr,
@@ -327,6 +341,8 @@ namespace vm
 	Token::Kind StoreNode::kind() const noexcept
 	{ return kind_; }
 
+
+
 	NativeCallNode::NativeCallNode(detail::Signature signature,
 									Location start,
 									Location finish)
@@ -348,6 +364,8 @@ namespace vm
 
 	Type NativeCallNode::operator[](std::size_t index) const noexcept
 	{ return at(index); }
+
+
 
 	ForNode::ForNode(Variable variable,
 						ASTNode *expr,
@@ -384,6 +402,8 @@ namespace vm
 	Block const * ForNode::body() const noexcept
 	{ return body_; }
 
+
+
 	WhileNode::WhileNode(ASTNode * expr,
 							Block * body,
 							Location start,
@@ -411,6 +431,8 @@ namespace vm
 	Block const * WhileNode::body() const noexcept
 	{ return body_; }
 
+
+
 	ReturnNode::ReturnNode(ASTNode *expr,
 							Location start,
 							Location finish) noexcept
@@ -426,6 +448,8 @@ namespace vm
 
 	ASTNode const * ReturnNode::expression() const noexcept
 	{ return expr_; }
+
+
 
 	IfNode::IfNode(ASTNode * expr,
 					Block * thn,
@@ -463,6 +487,8 @@ namespace vm
 	Block const * IfNode::else_block() const noexcept
 	{ return els_; }
 
+
+
 	CallNode::CallNode(std::string name,
 						std::vector<ASTNode *> params,
 						Location start,
@@ -492,5 +518,35 @@ namespace vm
 
 	ASTNode const * CallNode::operator[](std::size_t index) const noexcept
 	{ return at(index); }
+
+
+
+	PrintNode::PrintNode(std::vector<ASTNode *> params,
+							Location start,
+							Location finish)
+		: ASTNode(std::move(start), std::move(finish))
+		, params_(std::move(params))
+	{ }
+
+	PrintNode::~PrintNode()
+	{ std::for_each(params_.begin(), params_.end(), [](ASTNode * n) { delete n; }); }
+
+	std::size_t PrintNode::parameters_number() const noexcept
+	{ return params_.size(); }
+
+	ASTNode * PrintNode::at(std::size_t index) noexcept
+	{ return params_.at(index); }
+
+	ASTNode const * PrintNode::at(std::size_t index) const noexcept
+	{ return params_.at(index); }
+
+	ASTNode * PrintNode::operator[](std::size_t index) noexcept
+	{ return at(index); }
+
+	ASTNode const * PrintNode::operator[](std::size_t index) const noexcept
+	{ return at(index); }
+
+	void PrintNode::push_back(ASTNode * expr)
+	{ params_.push_back(expr); }
 
 }
