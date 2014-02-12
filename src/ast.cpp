@@ -36,8 +36,12 @@ namespace vm
 			{ return params_.cend(); }
 
 		Signature::ParamType const &
-			Signature::operator[](std::size_t index) const noexcept
+			Signature::at(std::size_t index) const noexcept
 			{ return params_.at(index); }
+
+		Signature::ParamType const &
+			Signature::operator[](std::size_t index) const noexcept
+			{ return at(index); }
 
 	}
 
@@ -274,7 +278,6 @@ namespace vm
 	double DoubleLitNode::value() const noexcept
 	{ return value_; }
 
-
 	LoadNode::LoadNode(Variable variable,
 						Location start,
 						Location finish) noexcept
@@ -287,7 +290,6 @@ namespace vm
 
 	ConstVariable const LoadNode::variable() const noexcept
 	{ return variable_; }
-
 
 	StoreNode::StoreNode(Variable variable,
 							ASTNode *expr,
@@ -325,7 +327,6 @@ namespace vm
 	Token::Kind StoreNode::kind() const noexcept
 	{ return kind_; }
 
-
 	NativeCallNode::NativeCallNode(detail::Signature signature,
 									Location start,
 									Location finish)
@@ -342,7 +343,154 @@ namespace vm
 	std::size_t NativeCallNode::parameters_number() const noexcept
 	{ return signature_.parameters_number(); }
 
+	Type NativeCallNode::at(std::size_t index) const noexcept
+	{ return signature_.at(index).first; }
+
 	Type NativeCallNode::operator[](std::size_t index) const noexcept
-	{ return signature_[index].first; }
+	{ return at(index); }
+
+	ForNode::ForNode(Variable variable,
+						ASTNode *expr,
+						Block *body,
+						Location start,
+						Location finish) noexcept
+		: ASTNode(std::move(start), std::move(finish))
+		, variable_(std::move(variable))
+		, expr_(expr)
+		, body_(body)
+	{ }
+
+	ForNode::~ForNode()
+	{
+		delete expression();
+		delete body();
+	}
+
+	Variable const ForNode::variable() noexcept
+	{ return variable_; }
+
+	ConstVariable const ForNode::variable() const noexcept
+	{ return variable_; }
+
+	ASTNode * ForNode::expression() noexcept
+	{ return expr_; }
+
+	ASTNode const * ForNode::expression() const noexcept
+	{ return expr_; }
+
+	Block * ForNode::body() noexcept
+	{ return body_; }
+
+	Block const * ForNode::body() const noexcept
+	{ return body_; }
+
+	WhileNode::WhileNode(ASTNode * expr,
+							Block * body,
+							Location start,
+							Location finish) noexcept
+		: ASTNode(std::move(start), std::move(finish))
+		, expr_(expr)
+		, body_(body)
+	{ }
+
+	WhileNode::~WhileNode()
+	{
+		delete expression();
+		delete body();
+	}
+
+	ASTNode * WhileNode::expression() noexcept
+	{ return expr_; }
+
+	ASTNode const * WhileNode::expression() const noexcept
+	{ return expr_; }
+
+	Block * WhileNode::body() noexcept
+	{ return body_; }
+
+	Block const * WhileNode::body() const noexcept
+	{ return body_; }
+
+	ReturnNode::ReturnNode(ASTNode *expr,
+							Location start,
+							Location finish) noexcept
+		: ASTNode(start, finish)
+		, expr_(expr)
+	{ }
+
+	ReturnNode::~ReturnNode()
+	{ delete expression(); }
+
+	ASTNode * ReturnNode::expression() noexcept
+	{ return expr_; }
+
+	ASTNode const * ReturnNode::expression() const noexcept
+	{ return expr_; }
+
+	IfNode::IfNode(ASTNode * expr,
+					Block * thn,
+					Block * els,
+					Location start,
+					Location finish) noexcept
+		: ASTNode(std::move(start), std::move(finish))
+		, expr_(expr)
+		, thn_(thn)
+		, els_(els)
+	{ }
+
+	IfNode::~IfNode()
+	{
+		delete expression();
+		delete then_block();
+		delete else_block();
+	}
+
+	ASTNode * IfNode::expression() noexcept
+	{ return expr_; }
+
+	ASTNode const * IfNode::expression() const noexcept
+	{ return expr_; }
+
+	Block * IfNode::then_block() noexcept
+	{ return thn_; }
+
+	Block const * IfNode::then_block() const noexcept
+	{ return thn_; }
+
+	Block * IfNode::else_block() noexcept
+	{ return els_; }
+
+	Block const * IfNode::else_block() const noexcept
+	{ return els_; }
+
+	CallNode::CallNode(std::string name,
+						std::vector<ASTNode *> params,
+						Location start,
+						Location finish)
+		: ASTNode(std::move(start), std::move(finish))
+		, name_(std::move(name))
+		, params_(std::move(params))
+	{ }
+
+	CallNode::~CallNode()
+	{ std::for_each(params_.begin(), params_.end(), [](ASTNode * n) { delete n; }); }
+
+	std::string const & CallNode::name() const noexcept
+	{ return name_; }
+
+	std::size_t CallNode::parameters_number() const noexcept
+	{ return params_.size(); }
+
+	ASTNode * CallNode::at(std::size_t index) noexcept
+	{ return params_.at(index); }
+
+	ASTNode const * CallNode::at(std::size_t index) const noexcept
+	{ return params_.at(index); }
+
+	ASTNode * CallNode::operator[](std::size_t index) noexcept
+	{ return at(index); }
+
+	ASTNode const * CallNode::operator[](std::size_t index) const noexcept
+	{ return at(index); }
 
 }

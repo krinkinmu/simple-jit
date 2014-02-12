@@ -42,10 +42,10 @@ namespace vm
 	class ForNode;
 	class WhileNode;
 	class NativeCallNode;
-	class ReturnNode {};
-	class CallNode {};
+	class ReturnNode;
+	class IfNode;
+	class CallNode;
 	class PrintNode {};
-	class IfNode {};
 	class FunctionNode
 	{
 		std::string name_;
@@ -147,6 +147,7 @@ namespace vm
 			ParametersType::const_iterator begin() const noexcept;
 			ParametersType::const_iterator end() const noexcept;
 
+			ParamType const & at(std::size_t index) const noexcept;
 			ParamType const & operator[](std::size_t index) const noexcept;
 
 		private:
@@ -468,6 +469,7 @@ namespace vm
 		Type return_type() const noexcept;
 
 		std::size_t parameters_number() const noexcept;
+		Type at(std::size_t index) const noexcept;
 		Type operator[](std::size_t index) const noexcept;
 
 	private:
@@ -481,12 +483,12 @@ namespace vm
 				ASTNode *expr,
 				Block *body,
 				Location start = Location(),
-				Location finish = Location());
+				Location finish = Location()) noexcept;
 
 		virtual ~ForNode();
 
-		Variable variable() noexcept;
-		ConstVariable variable() const noexcept;
+		Variable const variable() noexcept;
+		ConstVariable const variable() const noexcept;
 
 		ASTNode * expression() noexcept;
 		ASTNode const * expression() const noexcept;
@@ -506,7 +508,7 @@ namespace vm
 		WhileNode(ASTNode * expr,
 					Block * body,
 					Location start = Location(),
-					Location finish = Location());
+					Location finish = Location()) noexcept;
 
 		virtual ~WhileNode();
 
@@ -517,8 +519,74 @@ namespace vm
 		Block const * body() const noexcept;
 
 	private:
-		ASTNode * expression_;
+		ASTNode * expr_;
 		Block * body_;
+	};
+
+	class ReturnNode : public ASTNode
+	{
+	public:
+		ReturnNode(ASTNode *expr = nullptr,
+					Location start = Location(),
+					Location finish = Location()) noexcept;
+
+		virtual ~ReturnNode();
+
+		ASTNode * expression() noexcept;
+		ASTNode const * expression() const noexcept;
+
+	private:
+		ASTNode *expr_;
+	};
+
+	class IfNode : public ASTNode
+	{
+	public:
+		IfNode(ASTNode * expr,
+				Block * thn,
+				Block * els = nullptr,
+				Location start = Location(),
+				Location finish = Location()) noexcept;
+
+		virtual ~IfNode();
+
+		ASTNode * expression() noexcept;
+		ASTNode const * expression() const noexcept;
+
+		Block * then_block() noexcept;
+		Block const * then_block() const noexcept;
+
+		Block * else_block() noexcept;
+		Block const * else_block() const noexcept;
+
+	private:
+		ASTNode *expr_;
+		Block *thn_;
+		Block *els_;
+	};
+
+	class CallNode : public ASTNode
+	{
+	public:
+		CallNode(std::string name,
+					std::vector<ASTNode *> params,
+					Location start = Location(),
+					Location finish = Location());
+
+		virtual ~CallNode();
+
+		std::string const & name() const noexcept;
+		std::size_t parameters_number() const noexcept;
+
+		ASTNode * at(std::size_t index) noexcept;
+		ASTNode const * at(std::size_t index) const noexcept;
+
+		ASTNode * operator[](std::size_t index) noexcept;
+		ASTNode const * operator[](std::size_t index) const noexcept;
+
+	private:
+		std::string name_;
+		std::vector<ASTNode *> params_;
 	};
 
 }
