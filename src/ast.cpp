@@ -615,6 +615,8 @@ namespace vm
 	{
 		assert(params_);
 		assert(block_);
+		if (this->owner())
+			this->owner()->define_function(this);
 	}
 
 	Function::~Function()
@@ -658,7 +660,11 @@ namespace vm
 		, type_(type)
 		, name_(name)
 		, owner_(owner)
-	{ }
+	{
+		assert(this->owner());
+		if (this->owner())
+			this->owner()->define_variable(this);
+	}
 
 	std::string const & Variable::name() const noexcept
 	{ return name_; }
