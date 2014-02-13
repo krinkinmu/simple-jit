@@ -7,52 +7,51 @@
 namespace vm
 {
 
-	namespace detail
-	{
 
-		Signature::Signature(Type rtype,
-								std::string name,
-								Signature::ParametersType params)
-			: return_type_(rtype)
-			, name_(std::move(name))
-			, params_(std::move(params))
-		{ }
+	Signature::Signature(Type rtype,
+							std::string name,
+							Signature::ParametersType params)
+		: return_type_(rtype)
+		, name_(std::move(name))
+		, params_(std::move(params))
+	{ }
 
-		Type Signature::return_type() const noexcept
-		{ return return_type_; }
+	Type Signature::return_type() const noexcept
+	{ return return_type_; }
 
-		std::string const & Signature::name() const noexcept
-		{ return name_; }
+	std::string const & Signature::name() const noexcept
+	{ return name_; }
 
-		std::size_t Signature::parameters_number() const noexcept
-		{ return params_.size(); }
+	std::size_t Signature::parameters_number() const noexcept
+	{ return params_.size(); }
 
-		Signature::ParametersType::const_iterator
-			Signature::begin() const noexcept
-			{ return params_.cbegin(); }
+	Signature::ParametersType::const_iterator
+		Signature::begin() const noexcept
+		{ return params_.cbegin(); }
 
-		Signature::ParametersType::const_iterator
-			Signature::end() const noexcept
-			{ return params_.cend(); }
+	Signature::ParametersType::const_iterator
+		Signature::end() const noexcept
+		{ return params_.cend(); }
 
-		Signature::ParamType const &
-			Signature::at(std::size_t index) const noexcept
-			{ return params_.at(index); }
+	Signature::ParamType const &
+		Signature::at(std::size_t index) const noexcept
+		{ return params_.at(index); }
 
-		Signature::ParamType const &
-			Signature::operator[](std::size_t index) const noexcept
-			{ return at(index); }
-
-	}
+	Signature::ParamType const &
+		Signature::operator[](std::size_t index) const noexcept
+		{ return at(index); }
 
 
 
-	Block::Block(Scope *scope)
-		: scope_(scope)
+	Block::Block(Scope *parent)
+		: scope_(new Scope(parent))
 	{ assert(scope_); }
 
 	Block::~Block()
-	{ std::for_each(begin(), end(), [](ASTNode * node) { delete node; }); }
+	{
+		std::for_each(begin(), end(), [](ASTNode * node) { delete node; });
+		delete scope();
+	}
 
 	Scope * Block::scope() noexcept
 	{ return scope_; }
@@ -78,11 +77,17 @@ namespace vm
 	bool Block::empty() const noexcept
 	{ return instructions_.empty(); }
 
-	ASTNode * Block::operator[](std::size_t index) noexcept
+	ASTNode * Block::at(std::size_t index) noexcept
 	{ return instructions_.at(index); }
 
-	ASTNode const * Block::operator[](std::size_t index) const noexcept
+	ASTNode const * Block::at(std::size_t index) const noexcept
 	{ return instructions_.at(index); }
+
+	ASTNode * Block::operator[](std::size_t index) noexcept
+	{ return at(index); }
+
+	ASTNode const * Block::operator[](std::size_t index) const noexcept
+	{ return at(index); }
 
 	void Block::push_back(ASTNode *node)
 	{
@@ -99,9 +104,9 @@ namespace vm
 	Scope::~Scope()
 	{
 		std::for_each(variables_begin(), variables_end(),
-						[](Variable var) { delete var.definition(); } );
+						[](Variable *var) { delete var; } );
 		std::for_each(functions_begin(), functions_end(),
-						[](Function fun) { delete fun.definition(); } );
+						[](Function *fun) { delete fun; } );
 	}
 
 	Scope::variable_iterator const
@@ -121,20 +126,20 @@ namespace vm
 		{ return Scope::const_function_iterator(functions_.find(name)); }
 
 	std::pair<Scope::variable_iterator, bool> const
-		Scope::define_variable(Variable variable, bool replace) noexcept
+		Scope::define_variable(Variable *var, bool replace) noexcept
 		{
-			auto p = variables_.insert(std::make_pair(variable.name(), variable));
+			auto p = variables_.insert(std::make_pair(var->name(), var));
 			if (replace && !p.second)
-				p.first->second = std::move(variable);
+				p.first->second = var;
 			return std::make_pair(Scope::variable_iterator(p.first), !p.second);
 		}
 
 	std::pair<Scope::function_iterator, bool> const
-		Scope::define_function(Function function, bool replace) noexcept
+		Scope::define_function(Function *fun, bool replace) noexcept
 		{
-			auto p = functions_.insert(std::make_pair(function.name(), function));
+			auto p = functions_.insert(std::make_pair(fun->name(), fun));
 			if (replace && !p.second)
-				p.first->second = std::move(function);
+				p.first->second = fun;
 			return std::make_pair(Scope::function_iterator(p.first), !p.second);
 		}
 
@@ -170,15 +175,21 @@ namespace vm
 
 
 
-	ASTNode::ASTNode(Location start, Location finish) noexcept
+	LocatedInFile::LocatedInFile(Location start, Location finish) noexcept
 		: start_(std::move(start)), finish_(std::move(finish))
 	{ }
 
-	Location const & ASTNode::start() const noexcept
+	Location const & LocatedInFile::start() const noexcept
 	{ return start_; }
 
-	Location const & ASTNode::finish() const noexcept
+	Location const & LocatedInFile::finish() const noexcept
 	{ return finish_; }
+
+
+
+	ASTNode::ASTNode(Location start, Location finish) noexcept
+		: LocatedInFile(std::move(start), std::move(finish))
+	{ }
 
 
 
@@ -290,28 +301,28 @@ namespace vm
 
 
 
-	LoadNode::LoadNode(Variable variable,
+	LoadNode::LoadNode(Variable *var,
 						Location start,
 						Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
-		, variable_(std::move(variable))
-	{ }
+		, variable_(var)
+	{ assert(var); }
 
-	Variable const LoadNode::variable() noexcept
+	Variable * LoadNode::variable() noexcept
 	{ return variable_; }
 
-	ConstVariable const LoadNode::variable() const noexcept
+	Variable const * LoadNode::variable() const noexcept
 	{ return variable_; }
 
 
 
-	StoreNode::StoreNode(Variable variable,
+	StoreNode::StoreNode(Variable *var,
 							ASTNode *expr,
 							Token::Kind kind,
 							Location start,
 							Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
-		, variable_(variable)
+		, variable_(var)
 		, kind_(kind)
 		, expression_(expr)
 	{
@@ -321,15 +332,16 @@ namespace vm
 
 		assert(std::find(assignments, assignments + utils::array_size(assignments), kind) != assignments + utils::array_size(assignments));
 		assert(expr);
+		assert(var);
 	}
 
 	StoreNode::~StoreNode()
 	{ delete expression(); }
 
-	Variable const StoreNode::variable() noexcept
+	Variable * StoreNode::variable() noexcept
 	{ return variable_; }
 
-	ConstVariable const StoreNode::variable() const noexcept
+	Variable const * StoreNode::variable() const noexcept
 	{ return variable_; }
 
 	ASTNode * StoreNode::expression() noexcept
@@ -343,7 +355,7 @@ namespace vm
 
 
 
-	NativeCallNode::NativeCallNode(detail::Signature signature,
+	NativeCallNode::NativeCallNode(Signature signature,
 									Location start,
 									Location finish)
 		: ASTNode(std::move(start), std::move(finish))
@@ -367,16 +379,19 @@ namespace vm
 
 
 
-	ForNode::ForNode(Variable variable,
+	ForNode::ForNode(Variable *var,
 						ASTNode *expr,
-						Block *body,
+						Scope * parent,
 						Location start,
 						Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
-		, variable_(std::move(variable))
+		, variable_(var)
 		, expr_(expr)
-		, body_(body)
-	{ }
+		, body_(new(std::nothrow) Block(parent))
+	{
+		assert(var);
+		assert(body_);
+	}
 
 	ForNode::~ForNode()
 	{
@@ -384,10 +399,10 @@ namespace vm
 		delete body();
 	}
 
-	Variable const ForNode::variable() noexcept
+	Variable * ForNode::variable() noexcept
 	{ return variable_; }
 
-	ConstVariable const ForNode::variable() const noexcept
+	Variable const * ForNode::variable() const noexcept
 	{ return variable_; }
 
 	ASTNode * ForNode::expression() noexcept
@@ -405,13 +420,16 @@ namespace vm
 
 
 	WhileNode::WhileNode(ASTNode * expr,
-							Block * body,
+							Scope * parent,
 							Location start,
 							Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
 		, expr_(expr)
-		, body_(body)
-	{ }
+		, body_(new(std::nothrow) Block(parent))
+	{
+		assert(expr_);
+		assert(body_);
+	}
 
 	WhileNode::~WhileNode()
 	{
@@ -438,7 +456,7 @@ namespace vm
 							Location finish) noexcept
 		: ASTNode(start, finish)
 		, expr_(expr)
-	{ }
+	{ assert(expr); }
 
 	ReturnNode::~ReturnNode()
 	{ delete expression(); }
@@ -452,15 +470,18 @@ namespace vm
 
 
 	IfNode::IfNode(ASTNode * expr,
-					Block * thn,
-					Block * els,
+					Scope * parent,
 					Location start,
 					Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
 		, expr_(expr)
-		, thn_(thn)
-		, els_(els)
-	{ }
+		, thn_(new(std::nothrow) Block(parent))
+		, els_(new(std::nothrow) Block(parent))
+	{
+		assert(expr);
+		assert(thn_);
+		assert(els_);
+	}
 
 	IfNode::~IfNode()
 	{
@@ -551,34 +572,73 @@ namespace vm
 
 
 
-	FunctionNode::FunctionNode(detail::Signature signature,
-								Block * block,
-								Location start,
-								Location finish)
-		: ASTNode(start, finish)
+	Function::Function(Signature signature,
+						Scope * parent,
+						Location start,
+						Location finish)
+		: LocatedInFile(start, finish)
 		, signature_(std::move(signature))
-		, block_(block)
-	{ }
+		, params_(new(std::nothrow) Scope(parent))
+		, block_(new(std::nothrow) Block(params_))
+	{
+		assert(params_);
+		assert(block_);
+	}
 
-	FunctionNode::~FunctionNode()
-	{ delete body(); }
+	Function::~Function()
+	{
+		delete params_;
+		delete body();
+	}
 
-	std::string const & FunctionNode::name() const noexcept
+	std::string const & Function::name() const noexcept
 	{ return signature_.name(); }
 
-	Type FunctionNode::return_type() const noexcept
+	Type Function::return_type() const noexcept
 	{ return signature_.return_type(); }
 
-	Type FunctionNode::type_at(std::size_t index) const noexcept
+	Type Function::type_at(std::size_t index) const noexcept
 	{ return signature_.at(index).first; }
 
-	std::string const & FunctionNode::name_at(std::size_t index) const noexcept
+	std::string const & Function::name_at(std::size_t index) const noexcept
 	{ return signature_.at(index).second; }
 
-	Block * FunctionNode::body() noexcept
+	Block * Function::body() noexcept
 	{ return block_; }
 
-	Block const * FunctionNode::body() const noexcept
+	Block const * Function::body() const noexcept
 	{ return block_; }
+
+	Scope * Function::owner() noexcept
+	{ return params_->owner(); }
+
+	Scope const * Function::owner() const noexcept
+	{ return params_->owner(); }
+
+
+
+	Variable::Variable(Type type,
+						std::string name,
+						Scope * owner,
+						Location start,
+						Location finish)
+		: LocatedInFile(std::move(start), std::move(finish))
+		, type_(type)
+		, name_(name)
+		, owner_(owner)
+	{ }
+
+	std::string const & Variable::name() const noexcept
+	{ return name_; }
+
+	Type Variable::type() const noexcept
+	{ return type_; }
+
+	Scope * Variable::owner() noexcept
+	{ return owner_; }
+
+	Scope const * Variable::owner() const noexcept
+	{ return owner_; }
+
 
 }
