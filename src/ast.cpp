@@ -150,7 +150,10 @@ namespace vm
 		{
 			auto p = variables_.insert(std::make_pair(var->name(), var));
 			if (replace && !p.second)
+			{
+				delete p.first->second;
 				p.first->second = var;
+			}
 			return std::make_pair(Scope::variable_iterator(p.first), !p.second);
 		}
 
@@ -159,7 +162,10 @@ namespace vm
 		{
 			auto p = functions_.insert(std::make_pair(fun->name(), fun));
 			if (replace && !p.second)
+			{
+				delete p.first->second;
 				p.first->second = fun;
+			}
 			return std::make_pair(Scope::function_iterator(p.first), !p.second);
 		}
 
