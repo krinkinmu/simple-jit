@@ -111,19 +111,39 @@ namespace vm
 
 	Scope::variable_iterator const
 		Scope::lookup_variable(std::string const & name) noexcept
-		{ return Scope::variable_iterator(variables_.find(name)); }
+		{
+			Scope::variable_iterator it(variables_.find(name));
+			if (it == variables_end())
+				return owner()->lookup_variable(name);
+			return it;
+		}
 
 	Scope::const_variable_iterator const
 		Scope::lookup_variable(std::string const & name) const noexcept
-		{ return Scope::const_variable_iterator(variables_.find(name)); }
+		{
+			Scope::const_variable_iterator it(variables_.find(name));
+			if (it == variables_end())
+				return owner()->lookup_variable(name);
+			return it;
+		}
 
 	Scope::function_iterator const
 		Scope::lookup_function(std::string const & name) noexcept
-		{ return Scope::function_iterator(functions_.find(name)); }
+		{
+			Scope::function_iterator it(functions_.find(name));
+			if (it == functions_end())
+				return owner()->lookup_function(name);
+			return it;
+		}
 
 	Scope::const_function_iterator const
 		Scope::lookup_function(std::string const & name) const noexcept
-		{ return Scope::const_function_iterator(functions_.find(name)); }
+		{
+			Scope::const_function_iterator it(functions_.find(name));
+			if (it == functions_end())
+				return owner()->lookup_function(name);
+			return it;
+		}
 
 	std::pair<Scope::variable_iterator, bool> const
 		Scope::define_variable(Variable *var, bool replace) noexcept
