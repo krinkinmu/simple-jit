@@ -211,6 +211,12 @@ namespace vm
 	Location const & LocatedInFile::finish() const noexcept
 	{ return finish_; }
 
+	void LocatedInFile::set_start(Location start) noexcept
+	{ start_ = std::move(start); }
+
+	void LocatedInFile::set_finish(Location finish) noexcept
+	{ finish_ = std::move(finish); }
+
 
 
 	ASTNode::ASTNode(Location start, Location finish) noexcept

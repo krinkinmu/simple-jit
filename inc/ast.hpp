@@ -156,6 +156,9 @@ namespace vm
 		Location const & start() const noexcept;
 		Location const & finish() const noexcept;
 
+		void set_start(Location start) noexcept;
+		void set_finish(Location finish) noexcept;
+
 	private:
 		Location start_;
 		Location finish_;
