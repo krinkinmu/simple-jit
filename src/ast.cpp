@@ -549,4 +549,36 @@ namespace vm
 	void PrintNode::push_back(ASTNode * expr)
 	{ params_.push_back(expr); }
 
+
+
+	FunctionNode::FunctionNode(detail::Signature signature,
+								Block * block,
+								Location start,
+								Location finish)
+		: ASTNode(start, finish)
+		, signature_(std::move(signature))
+		, block_(block)
+	{ }
+
+	FunctionNode::~FunctionNode()
+	{ delete body(); }
+
+	std::string const & FunctionNode::name() const noexcept
+	{ return signature_.name(); }
+
+	Type FunctionNode::return_type() const noexcept
+	{ return signature_.return_type(); }
+
+	Type FunctionNode::type_at(std::size_t index) const noexcept
+	{ return signature_.at(index).first; }
+
+	std::string const & FunctionNode::name_at(std::size_t index) const noexcept
+	{ return signature_.at(index).second; }
+
+	Block * FunctionNode::body() noexcept
+	{ return block_; }
+
+	Block const * FunctionNode::body() const noexcept
+	{ return block_; }
+
 }

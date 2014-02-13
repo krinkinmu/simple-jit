@@ -46,12 +46,8 @@ namespace vm
 	class IfNode;
 	class CallNode;
 	class PrintNode;
-	class FunctionNode
-	{
-		std::string name_;
-	public:
-		std::string const & name() const noexcept { return name_; }
-	};
+
+	class FunctionNode;
 
 	class VariableNode
 	{
@@ -610,6 +606,31 @@ namespace vm
 
 	private:
 		std::vector<ASTNode *> params_;
+	};
+
+	class FunctionNode : public ASTNode
+	{
+	public:
+		FunctionNode(detail::Signature signature,
+						Block * block,
+						Location start = Location(),
+						Location finish = Location());
+
+		virtual ~FunctionNode();
+
+		std::string const & name() const noexcept;
+		Type return_type() const noexcept;
+
+		std::size_t parameters_number() const noexcept;
+		Type type_at(std::size_t index) const noexcept;
+		std::string const & name_at(std::size_t index) const noexcept;
+
+		Block * body() noexcept;
+		Block const * body() const noexcept;
+
+	private:
+		detail::Signature signature_;
+		Block * block_;
 	};
 
 }
