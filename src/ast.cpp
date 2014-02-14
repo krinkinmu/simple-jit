@@ -613,8 +613,11 @@ namespace vm
 	{
 		assert(params_);
 		assert(block_);
-		if (this->owner())
-			assert(this->owner()->define_function(this));
+		/**
+		 * need to do this right after Function construction
+		 * if (this->owner())
+		 * 	assert(this->owner()->define_function(this));
+		 **/
 	}
 
 	Function::~Function()
@@ -660,8 +663,10 @@ namespace vm
 		, owner_(owner)
 	{
 		assert(this->owner());
-		if (this->owner())
-			assert(this->owner()->define_variable(this));
+		/**
+		 * need to do this right after Variable construction
+		 * assert(this->owner()->define_variable(this));
+		 **/
 	}
 
 	std::string const & Variable::name() const noexcept
