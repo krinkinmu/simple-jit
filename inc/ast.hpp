@@ -225,8 +225,8 @@ namespace vm
 		function_iterator const lookup_function(std::string const & name) noexcept;
 		const_function_iterator const lookup_function(std::string const & name) const noexcept;
 
-		std::pair<variable_iterator, bool> const define_variable(Variable *var, bool replace = false) noexcept;
-		std::pair<function_iterator, bool> const define_function(Function *fun, bool replace = false) noexcept;
+		bool define_variable(Variable *var, bool replace = false) noexcept;
+		bool define_function(Function *fun, bool replace = false) noexcept;
 
 		Scope * owner() noexcept;
 		Scope const * owner() const noexcept;

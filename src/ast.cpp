@@ -145,29 +145,27 @@ namespace vm
 			return it;
 		}
 
-	std::pair<Scope::variable_iterator, bool> const
-		Scope::define_variable(Variable *var, bool replace) noexcept
+	bool Scope::define_variable(Variable *var, bool replace) noexcept
+	{
+		auto p = variables_.insert(std::make_pair(var->name(), var));
+		if (replace && !p.second)
 		{
-			auto p = variables_.insert(std::make_pair(var->name(), var));
-			if (replace && !p.second)
-			{
-				delete p.first->second;
-				p.first->second = var;
-			}
-			return std::make_pair(Scope::variable_iterator(p.first), !p.second);
+			delete p.first->second;
+			p.first->second = var;
 		}
+		return p.second;
+	}
 
-	std::pair<Scope::function_iterator, bool> const
-		Scope::define_function(Function *fun, bool replace) noexcept
+	bool Scope::define_function(Function *fun, bool replace) noexcept
+	{
+		auto p = functions_.insert(std::make_pair(fun->name(), fun));
+		if (replace && !p.second)
 		{
-			auto p = functions_.insert(std::make_pair(fun->name(), fun));
-			if (replace && !p.second)
-			{
-				delete p.first->second;
-				p.first->second = fun;
-			}
-			return std::make_pair(Scope::function_iterator(p.first), !p.second);
+			delete p.first->second;
+			p.first->second = fun;
 		}
+		return p.second;
+	}
 
 	Scope * Scope::owner() noexcept
 	{ return owner_; }
@@ -616,7 +614,7 @@ namespace vm
 		assert(params_);
 		assert(block_);
 		if (this->owner())
-			this->owner()->define_function(this);
+			assert(this->owner()->define_function(this));
 	}
 
 	Function::~Function()
@@ -663,7 +661,7 @@ namespace vm
 	{
 		assert(this->owner());
 		if (this->owner())
-			this->owner()->define_variable(this);
+			assert(this->owner()->define_variable(this));
 	}
 
 	std::string const & Variable::name() const noexcept
