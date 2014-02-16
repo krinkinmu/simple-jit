@@ -27,9 +27,17 @@ namespace vm
 		Scope *scope_;
 		Status *status_;
 		TokenList tokens_;
+		std::size_t pos_;
+
+		Token peek_token(std::size_t offset = 0) const noexcept;
+		Token extract_token() noexcept;
+		void consume_token(std::size_t count = 1) noexcept;
+		bool ensure_token(Token::Kind kind) noexcept;
 
 		void clear() noexcept;
 		Function * parse_toplevel() noexcept;
+
+		Status::Code parse_block(Block * block) noexcept;
 	};
 
 }
