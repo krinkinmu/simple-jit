@@ -43,8 +43,9 @@ namespace vm
 
 
 
-	Block::Block(Scope *parent)
-		: scope_(new Scope(parent))
+	Block::Block(Scope *parent, Location start, Location finish)
+		: ASTNode(std::move(start), std::move(finish))
+		, scope_(new Scope(parent))
 	{ assert(scope_); }
 
 	Block::~Block()

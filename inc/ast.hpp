@@ -164,46 +164,6 @@ namespace vm
 		Location finish_;
 	};
 
-
-
-	class Block
-	{
-		typedef std::vector<ASTNode *> InstructionsType;
-
-	public:
-		typedef InstructionsType::const_iterator const_iterator;
-		typedef InstructionsType::iterator iterator;
-
-		Block(Scope *parent);
-		virtual ~Block();
-
-		Scope *scope() noexcept;
-		Scope const *scope() const noexcept;
-
-		iterator begin() noexcept;
-		iterator end() noexcept;
-
-		const_iterator begin() const noexcept;
-		const_iterator end() const noexcept;
-
-		std::size_t size() const noexcept;
-		bool empty() const noexcept;
-
-		ASTNode * at(std::size_t index) noexcept;
-		ASTNode const * at(std::size_t index) const noexcept;
-
-		ASTNode * operator[](std::size_t index) noexcept;
-		ASTNode const * operator[](std::size_t index) const noexcept;
-
-		void push_back(ASTNode * node);
-
-	private:
-		std::vector<ASTNode *> instructions_;
-		Scope *scope_;
-	};
-
-
-
 	class Scope
 	{
 		typedef std::map<std::string, Variable *> Variables;
@@ -273,6 +233,44 @@ namespace vm
 
 		virtual void visit(Visitor const &) const { }
 		virtual void visit_children(Visitor const &) const { }
+	};
+
+	class Block : public ASTNode
+	{
+		typedef std::vector<ASTNode *> InstructionsType;
+
+	public:
+		typedef InstructionsType::const_iterator const_iterator;
+		typedef InstructionsType::iterator iterator;
+
+		Block(Scope *parent,
+				Location start = Location(),
+				Location finish = Location());
+		virtual ~Block();
+
+		Scope *scope() noexcept;
+		Scope const *scope() const noexcept;
+
+		iterator begin() noexcept;
+		iterator end() noexcept;
+
+		const_iterator begin() const noexcept;
+		const_iterator end() const noexcept;
+
+		std::size_t size() const noexcept;
+		bool empty() const noexcept;
+
+		ASTNode * at(std::size_t index) noexcept;
+		ASTNode const * at(std::size_t index) const noexcept;
+
+		ASTNode * operator[](std::size_t index) noexcept;
+		ASTNode const * operator[](std::size_t index) const noexcept;
+
+		void push_back(ASTNode * node);
+
+	private:
+		std::vector<ASTNode *> instructions_;
+		Scope *scope_;
 	};
 
 	class BinaryExprNode : public ASTNode
