@@ -157,7 +157,7 @@ namespace vm
 
 	void Scanner::scan_ident()
 	{
-		Location const location(current_location());
+		Location location(current_location());
 		std::string value;
 
 		while (detail::is_letter(peek_char()) || detail::is_digit(peek_char()))
