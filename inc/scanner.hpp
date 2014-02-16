@@ -9,7 +9,7 @@ namespace vm
 	class TokenList
 	{
 	public:
-		TokenList() { }
+		TokenList();
 
 		TokenList(TokenList const &) = default;
 		TokenList & operator=(TokenList const &) = default;
@@ -24,6 +24,8 @@ namespace vm
 
 		Location const & location_at(size_t index) const noexcept;
 		std::string const & value_at(size_t index) const noexcept;
+
+		void clear() noexcept;
 
 		template <typename Stream>
 		Stream & dump(Stream & out)
@@ -50,6 +52,12 @@ namespace vm
 	{
 	public:
 		Scanner();
+
+		Scanner(Scanner const &) = delete;
+		Scanner & operator=(Scanner const &) = delete;
+
+		Scanner(Scanner &&) noexcept = default;
+		Scanner & operator=(Scanner &&) noexcept = default;
 
 		Status::Code scan(std::string const & code, TokenList & tokens, Status & status);
 

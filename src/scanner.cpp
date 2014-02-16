@@ -5,6 +5,12 @@
 namespace vm
 {
 
+	TokenList::TokenList()
+	{ }
+
+	void TokenList::clear() noexcept
+	{ tokens_.clear(); }
+
 	void TokenList::push_back(Token token)
 	{ tokens_.push_back(std::move(token)); }
 
