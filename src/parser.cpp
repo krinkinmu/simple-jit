@@ -13,6 +13,9 @@ namespace vm
 	Parser::~Parser()
 	{ clear(); }
 
+	bool Parser::is_ok() const noexcept
+	{ return status_->code() != Status::ERROR; }
+
 	Function * Parser::parse(std::string const & code) noexcept
 	{
 		Status status;
@@ -65,12 +68,13 @@ namespace vm
 	{
 		Signature signature(Type::Void, "start_");
 		std::unique_ptr<Function> top(new Function(signature, nullptr));
-		if (parse_block(top->body()) != Status::ERROR)
+		parse_block(top->body());
+		if (is_ok())
 			return top.release();
 		return nullptr;
 	}
 
-	Status::Code Parser::parse_block(Block * body) noexcept
+	void Parser::parse_block(Block * body) noexcept
 	{
 		scope_ = body->scope();
 		bool const brace = ensure_token(Token::lbrace);
@@ -86,10 +90,49 @@ namespace vm
 		}
 
 		if (brace && !ensure_token(Token::rbrace))
+		{ }
+	}
+
+	ASTNode * Parser::parse_statement() noexcept
+	{
+		Token const tok = peek_token();
+		if (Token::is_keyword(tok.kind()))
 		{
-			//do warning;
+			switch (tok.kind())
+			{
+			default: assert(0);
+			case Token::function_kw:
+				return parse_function();
+			case Token::if_kw:
+				return parse_if();
+			case Token::for_kw:
+				return parse_for();
+			case Token::while_kw:
+				return parse_while();
+			case Token::print_kw:
+				return parse_print();
+			case Token::return_kw:
+				return parse_return();
+			case Token::int_t:
+			case Token::double_t:
+			case Token::string_t:
+				return parse_declaration();
+			}
 		}
-		return Status::SUCCESS;
+
+		if (tok.kind() == Token::lbrace)
+		{
+			Block * block = new(std::nothrow) Block(scope_);
+			if (block)
+				parse_block(block);
+			return block;
+		}
+
+		Token const next = peek_token(1);
+		if (tok.kind() == Token::ident && Token::is_assignment(next.kind()))
+			return parse_assignment();
+
+		return parse_expression();
 	}
 
 }
