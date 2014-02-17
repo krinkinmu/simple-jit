@@ -170,23 +170,24 @@ namespace vm
 		typedef std::map<std::string, Function *> Functions;
 
 	public:
-		typedef detail::BaseIterator<Variables::iterator, Variable *> variable_iterator;
-		typedef detail::BaseIterator<Functions::iterator, Function *> function_iterator;
+		/* It's not best solution, but it is much better then huge ugly BaseIterator */
+		typedef Variables::iterator variable_iterator;
+		typedef Functions::iterator function_iterator;
 
-		typedef detail::BaseIterator<Variables::const_iterator, Variable const *> const_variable_iterator;
-		typedef detail::BaseIterator<Functions::const_iterator, Function const *> const_function_iterator;
+		typedef Variables::const_iterator const_variable_iterator;
+		typedef Functions::const_iterator const_function_iterator;
 
 		Scope(Scope *owner = nullptr);
 		virtual ~Scope();
 
-		variable_iterator const lookup_variable(std::string const & name) noexcept;
-		const_variable_iterator const lookup_variable(std::string const & name) const noexcept;
+		Variable * lookup_variable(std::string const & name) noexcept;
+		Variable const * lookup_variable(std::string const & name) const noexcept;
 
-		function_iterator const lookup_function(std::string const & name) noexcept;
-		const_function_iterator const lookup_function(std::string const & name) const noexcept;
+		Function * lookup_function(std::string const & name) noexcept;
+		Function const * lookup_function(std::string const & name) const noexcept;
 
-		bool define_variable(Variable *var, bool replace = false) noexcept;
-		bool define_function(Function *fun, bool replace = false) noexcept;
+		bool define_variable(Variable *var, bool replace = false);
+		bool define_function(Function *fun, bool replace = false);
 
 		Scope * owner() noexcept;
 		Scope const * owner() const noexcept;
@@ -255,7 +256,7 @@ namespace vm
 		Scope const *scope() const noexcept;
 
 		Scope *owner() noexcept;
-		Scope const *scope() const noexcept;
+		Scope const *owner() const noexcept;
 
 		iterator begin() noexcept;
 		iterator end() noexcept;
@@ -423,7 +424,7 @@ namespace vm
 	public:
 		ForNode(Variable * var,
 				ASTNode *expr,
-				Body *body,
+				Block *body,
 				Location start = Location(),
 				Location finish = Location()) noexcept;
 
@@ -573,9 +574,6 @@ namespace vm
 
 		Block * body() noexcept;
 		Block const * body() const noexcept;
-
-		Scope * owner() noexcept;
-		Scope const * owner() const noexcept;
 
 	private:
 		Signature signature_;

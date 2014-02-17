@@ -15,8 +15,7 @@ LEX=lex
 OBJECTS= \
 	$(OBJ)/token.o \
 	$(OBJ)/scanner.o \
-	$(OBJ)/ast.o \
-	$(OBJ)/parser.o
+	$(OBJ)/ast.o
 
 all: $(OBJ) $(JIT) $(LEX)
 
