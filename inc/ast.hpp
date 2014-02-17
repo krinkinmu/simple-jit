@@ -207,6 +207,9 @@ namespace vm
 		Variables variables_;
 		Functions functions_;
 		Scope *owner_;
+		std::vector<Scope *> children_;
+
+		void register_child(Scope * child);
 	};
 
 	class ASTNode : public LocatedInFile
@@ -243,12 +246,15 @@ namespace vm
 		typedef InstructionsType::const_iterator const_iterator;
 		typedef InstructionsType::iterator iterator;
 
-		Block(Scope *parent,
+		Block(Scope *inner,
 				Location start = Location(),
 				Location finish = Location());
 		virtual ~Block();
 
 		Scope *scope() noexcept;
+		Scope const *scope() const noexcept;
+
+		Scope *owner() noexcept;
 		Scope const *scope() const noexcept;
 
 		iterator begin() noexcept;
@@ -270,7 +276,7 @@ namespace vm
 
 	private:
 		std::vector<ASTNode *> instructions_;
-		Scope *scope_;
+		Scope *inner_;
 	};
 
 	class BinaryExprNode : public ASTNode
@@ -417,7 +423,7 @@ namespace vm
 	public:
 		ForNode(Variable * var,
 				ASTNode *expr,
-				Scope *parent,
+				Body *body,
 				Location start = Location(),
 				Location finish = Location()) noexcept;
 
@@ -442,7 +448,7 @@ namespace vm
 	{
 	public:
 		WhileNode(ASTNode * expr,
-					Scope * parent,
+					Block * body,
 					Location start = Location(),
 					Location finish = Location()) noexcept;
 
@@ -479,7 +485,8 @@ namespace vm
 	{
 	public:
 		IfNode(ASTNode * expr,
-				Scope * parent,
+				Block * if_true,
+				Block * if_false = nullptr,
 				Location start = Location(),
 				Location finish = Location()) noexcept;
 
@@ -551,7 +558,7 @@ namespace vm
 	{
 	public:
 		Function(Signature signature,
-					Scope * owner,
+					Block * body,
 					Location start = Location(),
 					Location finish = Location());
 
@@ -572,8 +579,7 @@ namespace vm
 
 	private:
 		Signature signature_;
-		Scope * params_;
-		Block * block_;
+		Block * body_;
 	};
 
 	class Variable : public LocatedInFile
