@@ -73,6 +73,8 @@ namespace vm {
 	
 		static char const * get_token_value(Token::Kind kind) noexcept;
 		static Kind get_token_kind(char const * value) noexcept;
+		static bool is_keyword(Token::Kind kind) noexcept;
+		static bool is_assignment(Token::Kind kind) noexcept;
 
 		explicit Token(Kind kind, Location loc = Location())
 			: Token(kind, get_token_value(kind), std::move(loc))

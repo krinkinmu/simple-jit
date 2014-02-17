@@ -32,6 +32,12 @@ namespace vm
 		return Token::undef;
 	}
 
+	bool Token::is_keyword(Token::Kind kind) noexcept
+	{ return kind >= Token::double_t && kind <= Token::return_kw; }
+
+	bool Token::is_assignment(Token::Kind kind) noexcept
+	{ return kind == Token::incrset || kind == Token::decrset || kind == Token::assign; }
+
 	Token & Token::swap(Token & tok) noexcept
 	{
 		using std::swap;
