@@ -35,10 +35,14 @@ namespace vm
 		void consume_token(std::size_t count = 1) noexcept;
 		bool ensure_token(Token::Kind kind) noexcept;
 
+		void push_scope() noexcept;
+		void pop_scope() noexcept;
+		Scope * scope() noexcept;
+
 		void clear() noexcept;
 		Function * parse_toplevel() noexcept;
 
-		void parse_block(Block * block) noexcept;
+		Block * parse_block() noexcept;
 		ASTNode * parse_statement() noexcept;
 		StoreNode * parse_assignment() noexcept;
 		ASTNode * parse_function() noexcept;

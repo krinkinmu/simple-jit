@@ -64,33 +64,42 @@ namespace vm
 		return false;
 	}
 
-	Function * Parser::parse_toplevel() noexcept
+	void Parser::push_scope() noexcept
 	{
-		Signature signature(Type::Void, "start_");
-		std::unique_ptr<Function> top(new Function(signature, nullptr));
-		parse_block(top->body());
-		if (is_ok())
-			return top.release();
-		return nullptr;
+		scope_ = new(std::nothrow) Scope(scope_);
+		assert(scope_);
 	}
 
-	void Parser::parse_block(Block * body) noexcept
+	void Parser::pop_scope() noexcept
 	{
-		scope_ = body->scope();
+		assert(scope_);
+		scope_ = scope_->owner();
+	}
+
+	Scope * Parser::scope() noexcept
+	{ return scope_; }
+
+	Function * Parser::parse_toplevel() noexcept
+	{
+		std::unqiue_ptr<Block> body(parse_block());
+		if (!body.get())
+			return nullptr;
+
+		Function * top = new Function(Signature(Type::Void, "_start"), body);
+		if (top)
+			body.release();
+
+		return top;
+	}
+
+	Block * Parser::parse_block() noexcept
+	{
+		push_scope();
+
 		bool const brace = ensure_token(Token::lbrace);
+		assert(brace && !ensure_token(Token::rbrace));
 
-		Token::Kind const stop = brace ? Token::rbrace : Token::eof;
-		for (Token tok = peek_token(); tok.kind() != stop; tok = peek_token())
-		{
-			if (tok.kind() == Token::semi)
-			{
-				consume_token();
-				continue;
-			}
-		}
-
-		if (brace && !ensure_token(Token::rbrace))
-		{ }
+		pop_scope();
 	}
 
 	ASTNode * Parser::parse_statement() noexcept
@@ -121,12 +130,7 @@ namespace vm
 		}
 
 		if (tok.kind() == Token::lbrace)
-		{
-			Block * block = new(std::nothrow) Block(scope_);
-			if (block)
-				parse_block(block);
-			return block;
-		}
+			return parse_block();
 
 		Token const next = peek_token(1);
 		if (tok.kind() == Token::ident && Token::is_assignment(next.kind()))
