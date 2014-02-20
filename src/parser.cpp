@@ -29,7 +29,12 @@ namespace vm
 			return nullptr;
 
 		status_ = &status;
-		return parse_toplevel();
+
+		push_scope();
+		Function * top = parse_toplevel();
+		if (!top)
+			delete scope();
+		return top;
 	}
 
 	void Parser::clear() noexcept
@@ -81,11 +86,22 @@ namespace vm
 
 	Function * Parser::parse_toplevel() noexcept
 	{
-		std::unqiue_ptr<Block> body(parse_block());
-		if (!body.get())
-			return nullptr;
+		std::unique_ptr<Block> body(new(std::nothrow) Block(scope()));
+		assert(body.get());
 
-		Function * top = new Function(Signature(Type::Void, "_start"), body);
+		while (peek_token().kind() != Token::eof)
+		{
+			if (ensure_token(Token::semi))
+				continue;
+
+			ASTNode * const node = parse_statement();
+			if (!node)
+				return nullptr;
+			body->push_back(node);
+		}
+
+		Function * const top = new(std::nothrow) Function(Signature(Type::Void, "_start"), body.get());
+
 		if (top)
 			body.release();
 
@@ -94,12 +110,27 @@ namespace vm
 
 	Block * Parser::parse_block() noexcept
 	{
-		push_scope();
+		push_scope();	
+		assert(ensure_token(Token::lbrace));
 
-		bool const brace = ensure_token(Token::lbrace);
-		assert(brace && !ensure_token(Token::rbrace));
+		std::unique_ptr<Block> blk(new (std::nothrow) Block(scope()));
+		assert(blk.get());
 
+		while (peek_token().kind() != Token::rbrace)
+		{
+			if (ensure_token(Token::semi))
+				continue;
+
+			ASTNode * const stmt = parse_statement();
+			if (!stmt)
+				return nullptr;
+			blk->push_back(stmt);
+		}
+
+		assert(ensure_token(Token::rbrace));
 		pop_scope();
+
+		return blk.release();
 	}
 
 	ASTNode * Parser::parse_statement() noexcept
