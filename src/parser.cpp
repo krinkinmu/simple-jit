@@ -175,14 +175,31 @@ namespace vm
 
 	ASTNode * Parser::parse_assignment()
 	{
-		Token const tok = peek_token();
-		assert(tok.kind() == Token::ident);
-		Variable * variable = scope()->lookup_variable(tok.value());
+		Token const var = extract_token();
+		assert(var.kind() == Token::ident);
+
+		Variable * const variable = scope()->lookup_variable(var.value());
 		if (!variable)
 		{
-			error("unknown variable " + tok.value(), tok.location());
+			error("unknown variable " + var.value(), var.location());
 			return nullptr;
 		}
+
+		Token const op = extract_token();
+		assert(Token::is_assignment(op.kind()));
+
+		ASTNode * const expr = parse_expression();
+		if (!expr)
+			return nullptr;
+
+		StoreNode * const store = new(std::nothrow) StoreNode(variable,
+																expr,
+																op,
+																var.location(), 
+																expr->finish());
+		assert(store);
+
+		return store;
 	}
 
 }
