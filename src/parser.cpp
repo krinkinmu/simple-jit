@@ -49,12 +49,15 @@ namespace vm
 		pos_ = 0;
 	}
 
-	Token Parser::peek_token(std::size_t offset) const
-	{ return tokens_.at(pos_ + offset); }
+	Token::Kind Parser::peek_token(std::size_t offset) const noexcept
+	{ return tokens_.at(pos_ + offset).kind(); }
+
+	Location Parser::location() const noexcept
+	{ return tokens_.at(pos_).location(); }
 
 	Token Parser::extract_token()
 	{
-		Token tok = peek_token();
+		Token tok = tokens_.at(pos_);
 		consume_token();
 		return tok;
 	}
@@ -64,7 +67,7 @@ namespace vm
 
 	bool Parser::ensure_token(Token::Kind kind)
 	{
-		if (kind == peek_token().kind())
+		if (kind == peek_token())
 		{
 			consume_token();
 			return true;
@@ -92,7 +95,7 @@ namespace vm
 		std::unique_ptr<Block> body(new(std::nothrow) Block(scope()));
 		assert(body.get());
 
-		while (peek_token().kind() != Token::eof)
+		while (peek_token() != Token::eof)
 		{
 			if (ensure_token(Token::semi))
 				continue;
@@ -119,7 +122,7 @@ namespace vm
 		std::unique_ptr<Block> blk(new (std::nothrow) Block(scope()));
 		assert(blk.get());
 
-		while (peek_token().kind() != Token::rbrace)
+		while (peek_token() != Token::rbrace)
 		{
 			if (ensure_token(Token::semi))
 				continue;
@@ -138,10 +141,10 @@ namespace vm
 
 	ASTNode * Parser::parse_statement()
 	{
-		Token const tok = peek_token();
-		if (Token::is_keyword(tok.kind()))
+		Token::Kind const tok = peek_token();
+		if (Token::is_keyword(tok))
 		{
-			switch (tok.kind())
+			switch (tok)
 			{
 			default: assert(0);
 			case Token::function_kw:
@@ -163,11 +166,11 @@ namespace vm
 			}
 		}
 
-		if (tok.kind() == Token::lbrace)
+		if (tok == Token::lbrace)
 			return parse_block();
 
-		Token const next = peek_token(1);
-		if (tok.kind() == Token::ident && Token::is_assignment(next.kind()))
+		Token::Kind const next = peek_token(1);
+		if (tok == Token::ident && Token::is_assignment(next))
 			return parse_assignment();
 
 		return parse_expression();
@@ -200,6 +203,30 @@ namespace vm
 		assert(store);
 
 		return store;
+	}
+
+	CallNode * Parser::parse_call()
+	{
+		Token const fun = extract_token();
+		assert(fun.kind() == Token::ident);
+
+		std::string const & function = fun.value();
+		assert(ensure_token(Token::lparen));
+
+		std::vector< std::unique_ptr<ASTNode> > args;
+		while (peek_token() != Token::rparen)
+		{
+			ASTNode * const arg = parse_expression();
+			if (!arg)
+				return nullptr;
+			args->push_back(std::unique_ptr<ASTNode>(arg));
+			if (!ensure_token(Token::comma) && peek_token() != Token::rparen)
+			{
+				error("expected comma or bracket", location());
+				return nullptr;
+			}
+		}
+		assert(ensure_token(Token::rparen));
 	}
 
 }

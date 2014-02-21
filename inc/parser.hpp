@@ -32,7 +32,8 @@ namespace vm
 		void error(std::string message, Location loc = Location());
 		bool is_ok() const noexcept;
 
-		Token peek_token(std::size_t offset = 0) const;
+		Token::Kind peek_token(std::size_t offset = 0) const noexcept;
+		Location location() const noexcept;
 		Token extract_token();
 		void consume_token(std::size_t count = 1) noexcept;
 		bool ensure_token(Token::Kind kind);
@@ -47,7 +48,7 @@ namespace vm
 		Block * parse_block();
 		ASTNode * parse_statement();
 		StoreNode * parse_assignment();
-		ASTNode * parse_function();
+		CallNode * parse_call();
 		WhileNode * parse_while();
 		ForNode * parse_for();
 		IfNode * parse_if();
@@ -55,6 +56,7 @@ namespace vm
 		PrintNode * parse_print();
 		ASTNode * parse_declaration();
 		ASTNode * parse_expression();
+		ASTNode * parse_function();
 	};
 
 }
