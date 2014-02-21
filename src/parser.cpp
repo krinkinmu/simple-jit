@@ -13,16 +13,19 @@ namespace vm
 	Parser::~Parser()
 	{ clear(); }
 
+	void Parser::error(std::string message, Location loc)
+	{ status_->swap(Status(Status::ERROR, message, loc)); }
+
 	bool Parser::is_ok() const noexcept
 	{ return status_->code() != Status::ERROR; }
 
-	Function * Parser::parse(std::string const & code) noexcept
+	Function * Parser::parse(std::string const & code)
 	{
 		Status status;
 		return parse(code, status);
 	}
 
-	Function * Parser::parse(std::string const & code, Status & status) noexcept
+	Function * Parser::parse(std::string const & code, Status & status)
 	{
 		clear();
 		if (Scanner().scan(code, tokens_, status) == Status::ERROR)
@@ -46,10 +49,10 @@ namespace vm
 		pos_ = 0;
 	}
 
-	Token Parser::peek_token(std::size_t offset) const noexcept
+	Token Parser::peek_token(std::size_t offset) const
 	{ return tokens_.at(pos_ + offset); }
 
-	Token Parser::extract_token() noexcept
+	Token Parser::extract_token()
 	{
 		Token tok = peek_token();
 		consume_token();
@@ -59,7 +62,7 @@ namespace vm
 	void Parser::consume_token(std::size_t count) noexcept
 	{ pos_ += count; }
 
-	bool Parser::ensure_token(Token::Kind kind) noexcept
+	bool Parser::ensure_token(Token::Kind kind)
 	{
 		if (kind == peek_token().kind())
 		{
@@ -69,13 +72,13 @@ namespace vm
 		return false;
 	}
 
-	void Parser::push_scope() noexcept
+	void Parser::push_scope()
 	{
 		scope_ = new(std::nothrow) Scope(scope_);
 		assert(scope_);
 	}
 
-	void Parser::pop_scope() noexcept
+	void Parser::pop_scope()
 	{
 		assert(scope_);
 		scope_ = scope_->owner();
@@ -84,7 +87,7 @@ namespace vm
 	Scope * Parser::scope() noexcept
 	{ return scope_; }
 
-	Function * Parser::parse_toplevel() noexcept
+	Function * Parser::parse_toplevel()
 	{
 		std::unique_ptr<Block> body(new(std::nothrow) Block(scope()));
 		assert(body.get());
@@ -108,7 +111,7 @@ namespace vm
 		return top;
 	}
 
-	Block * Parser::parse_block() noexcept
+	Block * Parser::parse_block()
 	{
 		push_scope();	
 		assert(ensure_token(Token::lbrace));
@@ -133,7 +136,7 @@ namespace vm
 		return blk.release();
 	}
 
-	ASTNode * Parser::parse_statement() noexcept
+	ASTNode * Parser::parse_statement()
 	{
 		Token const tok = peek_token();
 		if (Token::is_keyword(tok.kind()))
@@ -168,6 +171,18 @@ namespace vm
 			return parse_assignment();
 
 		return parse_expression();
+	}
+
+	ASTNode * Parser::parse_assignment()
+	{
+		Token const tok = peek_token();
+		assert(tok.kind() == Token::ident);
+		Variable * variable = scope()->lookup_variable(tok.value());
+		if (!variable)
+		{
+			error("unknown variable " + tok.value(), tok.location());
+			return nullptr;
+		}
 	}
 
 }

@@ -13,14 +13,14 @@ namespace vm
 		Parser();
 		~Parser();
 
-		Parser(Parser const &) = delete;
+		Parser(Parser const &) = default;
 		Parser & operator=(Parser const &) = delete;
 
 		Parser(Parser &&) noexcept = default;
-		Parser & operator=(Parser &&) noexcept = default;
+		Parser & operator=(Parser &&) noexcept = delete;
 
-		Function * parse(std::string const & code) noexcept;
-		Function * parse(std::string const & code, Status & status) noexcept;
+		Function * parse(std::string const & code);
+		Function * parse(std::string const & code, Status & status);
 
 	private:
 		Function *top_;
@@ -29,30 +29,32 @@ namespace vm
 		TokenList tokens_;
 		std::size_t pos_;
 
+		void error(std::string message, Location loc = Location());
 		bool is_ok() const noexcept;
-		Token peek_token(std::size_t offset = 0) const noexcept;
-		Token extract_token() noexcept;
-		void consume_token(std::size_t count = 1) noexcept;
-		bool ensure_token(Token::Kind kind) noexcept;
 
-		void push_scope() noexcept;
-		void pop_scope() noexcept;
+		Token peek_token(std::size_t offset = 0) const;
+		Token extract_token();
+		void consume_token(std::size_t count = 1) noexcept;
+		bool ensure_token(Token::Kind kind);
+
+		void push_scope();
+		void pop_scope();
 		Scope * scope() noexcept;
 
 		void clear() noexcept;
-		Function * parse_toplevel() noexcept;
+		Function * parse_toplevel();
 
-		Block * parse_block() noexcept;
-		ASTNode * parse_statement() noexcept;
-		StoreNode * parse_assignment() noexcept;
-		ASTNode * parse_function() noexcept;
-		WhileNode * parse_while() noexcept;
-		ForNode * parse_for() noexcept;
-		IfNode * parse_if() noexcept;
-		ReturnNode * parse_return() noexcept;
-		PrintNode * parse_print() noexcept;
-		ASTNode * parse_declaration() noexcept;
-		ASTNode * parse_expression() noexcept;
+		Block * parse_block();
+		ASTNode * parse_statement();
+		StoreNode * parse_assignment();
+		ASTNode * parse_function();
+		WhileNode * parse_while();
+		ForNode * parse_for();
+		IfNode * parse_if();
+		ReturnNode * parse_return();
+		PrintNode * parse_print();
+		ASTNode * parse_declaration();
+		ASTNode * parse_expression();
 	};
 
 }
