@@ -213,20 +213,30 @@ namespace vm
 		std::string const & function = fun.value();
 		assert(ensure_token(Token::lparen));
 
-		std::vector< std::unique_ptr<ASTNode> > args;
+		std::vector<ASTNode *> args;
 		while (peek_token() != Token::rparen)
 		{
 			ASTNode * const arg = parse_expression();
 			if (!arg)
+			{
+				std::for_each(args.begin(), args.end(), [](ASTNode * node){ delete node; });
 				return nullptr;
-			args->push_back(std::unique_ptr<ASTNode>(arg));
+			}
+			args->push_back(arg);
+
 			if (!ensure_token(Token::comma) && peek_token() != Token::rparen)
 			{
+				std::for_each(args.begin(), args.end(), [](ASTNode * node){ delete node; });
 				error("expected comma or bracket", location());
 				return nullptr;
 			}
 		}
 		assert(ensure_token(Token::rparen));
+
+		CallNode * const call = new(std::nothrow) CallNode(function, args, fun.location(), location());
+		assert(call);
+
+		return call;
 	}
 
 }
