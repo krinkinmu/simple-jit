@@ -92,8 +92,8 @@ namespace vm
 
 	Function * Parser::parse_toplevel()
 	{
-		std::unique_ptr<Block> body(new(std::nothrow) Block(scope()));
-		assert(body.get());
+		Block * const body = new(std::nothrow) Block(scope());
+		assert(body);
 
 		while (peek_token() != Token::eof)
 		{
@@ -106,10 +106,8 @@ namespace vm
 			body->push_back(node);
 		}
 
-		Function * const top = new(std::nothrow) Function(Signature(Type::Void, "_start"), body.get());
-
-		if (top)
-			body.release();
+		Function * const top = new(std::nothrow) Function(Signature(Type::Void, "_start"), body);
+		assert(top);
 
 		return top;
 	}
@@ -237,6 +235,100 @@ namespace vm
 		assert(call);
 
 		return call;
+	}
+
+	namespace detail
+	{
+		Type token_to_type(Token::Kind kind)
+		{
+			switch (kind)
+			{
+			default: assert(0);
+			case Token::double_t: return Type::Double;
+			case Token::int_t: return Type::Int;
+			case Token::string_t: return Type::String;
+			case Token::void_t: return Type::Void;
+			}
+			return Type::Invalid;
+		}
+	}
+
+	Function * parse_function()
+	{
+		assert(ensure_token(Token::function_kw));
+
+		Token const tp = extract_token();
+		if (!Token::is_typename())
+		{
+			error("function return type expected", tp.location());
+			return nullptr;
+		}
+
+		Token const nm = extract_token();
+		if (nm.kind() != Token::ident)
+		{
+			error("function name expected", nm.location());
+			return nullptr;
+		}
+
+		if (!ensure_token(Token::lparen))
+		{
+			error("open bracket expected", location());
+			return nullptr;
+		}
+		
+		typedef Signature::ParametersType ParametersType;
+		ParametersType parameters;
+		while (peek_token() != Token::rparen)
+		{
+			Token const param_type = extract_token();
+			if (!Token::is_typename(param_type.kind()))
+			{
+				error("typename or ) expected", param_type.location());
+				return nullptr;
+			}
+
+			Token const param_name = extract_token();
+			if (param_name.kind() != Token::ident)
+			{
+				error("identifier or ) expected", param_name.location());
+				return nullptr;
+			}
+
+			parameters.emplace_back(
+					std::make_pair(
+						detail::token_to_type(param_type.kind(),
+							param_name.value())
+						)
+					);
+
+			if (!ensure_token(Token::comma) && peek_token() != Token::rparen)
+			{
+				error(", or ) expected", location());
+				return nullptr;
+			}
+		}
+		assert(ensure_token(Token::rparen));
+
+		push_scope();
+		ParametersType::const_iterator const begin(parameters.begin());
+		ParametersType::const_iterator const end(parameters.end());
+		for (ParametersType::const_iterator it = begin(); it != end(); ++it)
+		{
+			Variable * const var = new (std::nothrow) Variable(it->first, it->second, tp.location(), location());
+			assert(var);
+			scope()->define_variable(var);
+		}
+		BlockNode * const body = parse_block();
+		pop_scope();
+
+		if (!body)
+			return nullptr;
+
+		Function * const fun = new(std::nothrow) Function(Signature(detail::token_to_type(tp.kind()), nm.value(), parameters), body, tp.location(), location());
+		scope()->define_function(fun);
+
+		return fun;
 	}
 
 }
