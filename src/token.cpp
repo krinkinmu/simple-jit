@@ -38,6 +38,9 @@ namespace vm
 	bool Token::is_assignment(Token::Kind kind) noexcept
 	{ return kind == Token::incrset || kind == Token::decrset || kind == Token::assign; }
 
+	bool Token::is_typename(Token::Kind kind) noexcept
+	{ return kind == Token::double_t || kind == Token::int_t || kind == Token::string_t || kind == Token::void_t; }
+
 	Token & Token::swap(Token & tok) noexcept
 	{
 		using std::swap;
