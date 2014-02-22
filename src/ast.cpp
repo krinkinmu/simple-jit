@@ -655,6 +655,7 @@ namespace vm
 		: LocatedInFile(std::move(start), std::move(finish))
 		, type_(type)
 		, name_(name)
+		, owner_(nullptr)
 	{ }
 
 	std::string const & Variable::name() const noexcept
