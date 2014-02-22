@@ -156,6 +156,7 @@ namespace vm
 	bool Scope::define_variable(Variable *var, bool replace)
 	{
 		auto p = variables_.insert(std::make_pair(var->name(), var));
+		var->set_owner(this);
 		if (replace && !p.second)
 		{
 			delete p.first->second;
@@ -649,14 +650,12 @@ namespace vm
 
 	Variable::Variable(Type type,
 						std::string name,
-						Scope * owner,
 						Location start,
 						Location finish)
 		: LocatedInFile(std::move(start), std::move(finish))
 		, type_(type)
 		, name_(name)
-		, owner_(owner)
-	{ assert(this->owner()); }
+	{ }
 
 	std::string const & Variable::name() const noexcept
 	{ return name_; }
@@ -669,6 +668,9 @@ namespace vm
 
 	Scope const * Variable::owner() const noexcept
 	{ return owner_; }
+
+	void Variable::set_owner(Scope * scope) noexcept
+	{ owner_ = scope; }
 
 
 }

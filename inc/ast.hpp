@@ -518,7 +518,6 @@ namespace vm
 	public:
 		Variable(Type type,
 					std::string name,
-					Scope * owner,
 					Location start = Location(),
 					Location finish = Location());
 
@@ -527,6 +526,8 @@ namespace vm
 
 		Scope * owner() noexcept;
 		Scope const * owner() const noexcept;
+
+		void set_owner(Scope * scope) noexcept;
 
 	private:
 		Type type_;
