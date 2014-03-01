@@ -319,7 +319,7 @@ namespace vm
 			assert(var);
 			scope()->define_variable(var);
 		}
-		BlockNode * const body = parse_block();
+		Block * const body = parse_block();
 		pop_scope();
 
 		if (!body)
@@ -354,7 +354,7 @@ namespace vm
 			return nullptr;
 		}
 
-		BlockNode * const body = parse_block();
+		Block * const body = parse_block();
 		if (!body)
 			return nullptr;
 
@@ -399,7 +399,7 @@ namespace vm
 			return nullptr;
 		}
 
-		BlockNode * const body = parse_block();
+		Block * const body = parse_block();
 		if (!body)
 			return nullptr;
 
@@ -436,11 +436,11 @@ namespace vm
 			return nullptr;
 		}
 
-		BlockNode * const then_body = parse_block();
+		Block * const then_body = parse_block();
 		if (!then_body)
 			return nullptr;
 
-		BlockNode * else_body = nullptr;
+		Block * else_body = nullptr;
 		if (ensure_token(Token::else_kw))
 		{
 			else_body = parse_block();
