@@ -128,11 +128,11 @@ namespace vm
 
 	Variable const * Scope::lookup_variable(std::string const & name) const noexcept
 	{
-		Scope::const_variable_iterator it = variables_.find(name);
-		if (it != variables_.end())
+		Scope::const_variable_iterator it(variables_.find(name));
+		if (it != variables_.cend())
 			return it->second;
 
-		if (owner())
+		if (owner() != nullptr)
 			return owner()->lookup_variable(name);
 
 		return nullptr;
@@ -143,11 +143,11 @@ namespace vm
 
 	Function const * Scope::lookup_function(std::string const & name) const noexcept
 	{
-		Scope::const_function_iterator it = functions_.find(name);
-		if (it != functions_.end())
+		Scope::const_function_iterator it(functions_.find(name));
+		if (it != functions_.cend())
 			return it->second;
 
-		if (owner())
+		if (owner() != nullptr)
 			return owner()->lookup_function(name);
 
 		return nullptr;
