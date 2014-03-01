@@ -364,4 +364,56 @@ namespace vm
 		return loop;
 	}
 
+	ForNode * parse_for()
+	{
+		Location const start = location();
+
+		assert(ensure_token(Token::for_kw));
+
+		if (!ensure_token(Token::lparen))
+		{
+			error("( expected", location());
+			return nullptr;
+		}
+
+		Token const var = extract_token();
+		if (var.kind() != Token::ident)
+		{
+			error("identifier expected", var.location());
+			return nullptr;
+		}
+
+		if (!ensure_token(Token::in_kw))
+		{
+			error("in expected", location());
+			return nullptr;
+		}
+
+		ASTNode * const expr = parse_expression();
+		if (!expr)
+			return nullptr;
+
+		if (!ensure_token(Token::rparen))
+		{
+			error(") expected", location());
+			return nullptr;
+		}
+
+		BlockNode * const body = parse_block();
+		if (!body)
+			return nullptr;
+
+		Variable * const v = scope()->lookup_variable(var.value());
+		if (!v)
+		{
+			error("unknown variable" + var.value(), var.location());
+			return nullptr;
+		}
+
+		ForNode * const loop = new (std::nothrow) ForNode(v, expr, body, start, location());
+		assert(loop);
+
+		return loop;
+	}
+
 }
