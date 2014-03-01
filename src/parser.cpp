@@ -416,4 +416,42 @@ namespace vm
 		return loop;
 	}
 
+	IfNode * Parser::parse_if()
+	{
+		Location const start = location();
+
+		assert(ensure_token(Token::if_kw));
+
+		if (!ensure_token(Token::lparen))
+		{
+			error("( expected", location());
+			return nullptr;
+		}
+
+		ASTNode * const expr = parse_exception();
+
+		if (!ensure_token(Token::rparen))
+		{
+			error("( expected", location());
+			return nullptr;
+		}
+
+		BlockNode * const then_body = parse_block();
+		if (!then_body)
+			return nullptr;
+
+		BlockNode * else_body = nullptr;
+		if (ensure_token(Token::else_kw))
+		{
+			else_body = parse_block();
+			if (!else_body)
+				return nullptr;
+		}
+
+		IfNode * const cond = new (std::nothrow) IfNode(expr, then_body, else_body, start, location());
+		assert(cond);
+
+		return nullptr;
+	}
+
 }
