@@ -93,10 +93,10 @@ namespace vm
 	ASTNode const * Block::operator[](std::size_t index) const noexcept
 	{ return at(index); }
 
-	void Block::push_back(ASTNode *node)
+	void Block::push_back(std::unique_ptr<ASTNode> node)
 	{
-		assert(node);
-		instructions_.push_back(node);
+		instructions_.push_back(node.get());
+		node.release();
 	}
 
 
@@ -118,7 +118,7 @@ namespace vm
 		std::for_each(functions_begin(), functions_end(),
 						[](FunPair const & fun) { delete fun.second; });
 		std::for_each(children_.begin(), children_.end(),
-						[](Scope * scope) { delete scope; });
+						[](Scope const * scope) { delete scope; });
 	}
 
 	Variable * Scope::lookup_variable(std::string const & name) noexcept
@@ -153,27 +153,17 @@ namespace vm
 		return nullptr;
 	}
 
-	bool Scope::define_variable(Variable *var, bool replace)
+	void Scope::define_variable(std::unique_ptr<Variable> var)
 	{
-		auto p = variables_.insert(std::make_pair(var->name(), var));
+		variables_[var->name()] = var.get();
 		var->set_owner(this);
-		if (replace && !p.second)
-		{
-			delete p.first->second;
-			p.first->second = var;
-		}
-		return p.second;
+		var.release();
 	}
 
-	bool Scope::define_function(Function *fun, bool replace)
+	void Scope::define_function(std::unique_ptr<Function> fun)
 	{
-		auto p = functions_.insert(std::make_pair(fun->name(), fun));
-		if (replace && !p.second)
-		{
-			delete p.first->second;
-			p.first->second = fun;
-		}
-		return p.second;
+		functions_[fun->name()] = fun.get();
+		fun.release();
 	}
 
 	Scope * Scope::owner() noexcept
@@ -206,7 +196,7 @@ namespace vm
 	Scope::const_function_iterator const Scope::functions_end() const noexcept
 	{ return functions_.end(); }
 
-	void Scope::register_child(Scope * child)
+	void Scope::register_child(Scope const * child)
 	{ children_.push_back(child); }
 
 
@@ -236,14 +226,14 @@ namespace vm
 
 
 	BinaryExprNode::BinaryExprNode(Token::Kind kind,
-									ASTNode *left,
-									ASTNode *right,
+									std::unique_ptr<ASTNode> left,
+									std::unique_ptr<ASTNode> right,
 									Location start,
 									Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
 		, kind_(kind)
-		, left_(left)
-		, right_(right)
+		, left_(left.release())
+		, right_(right.release())
 	{
 		static Token::Kind binaries[] = {
 			Token::lor, Token::land, Token::eq, Token::neq, Token::ge, Token::le,
@@ -280,12 +270,12 @@ namespace vm
 
 
 	UnaryExprNode::UnaryExprNode(Token::Kind kind,
-									ASTNode *node,
+									std::unique_ptr<ASTNode> node,
 									Location start,
 									Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
 		, kind_(kind)
-		, operand_(node)
+		, operand_(node.release())
 	{
 		static Token::Kind unaries[] = { Token::anot, Token::lnot, Token::sub };
 
@@ -359,14 +349,14 @@ namespace vm
 
 
 	StoreNode::StoreNode(Variable *var,
-							ASTNode *expr,
+							std::unique_ptr<ASTNode> expr,
 							Token::Kind kind,
 							Location start,
 							Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
 		, variable_(var)
 		, kind_(kind)
-		, expression_(expr)
+		, expression_(expr.release())
 	{
 		static Token::Kind assignments[] = {
 			Token::incrset, Token::decrset, Token::assign
@@ -397,24 +387,27 @@ namespace vm
 
 
 
-	NativeCallNode::NativeCallNode(Signature signature,
+	NativeCallNode::NativeCallNode(std::unique_ptr<Signature> signature,
 									Location start,
-									Location finish)
+									Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
-		, signature_(std::move(signature))
-	{ }
+		, signature_(signature.release())
+	{ assert(signature_); }
+
+	NativeCallNode::~NativeCallNode()
+	{ delete signature_; }
 
 	std::string const & NativeCallNode::name() const noexcept
-	{ return signature_.name(); }
+	{ return signature_->name(); }
 
 	Type NativeCallNode::return_type() const noexcept
-	{ return signature_.return_type(); }
+	{ return signature_->return_type(); }
 
 	std::size_t NativeCallNode::parameters_number() const noexcept
-	{ return signature_.parameters_number(); }
+	{ return signature_->parameters_number(); }
 
 	Type NativeCallNode::at(std::size_t index) const noexcept
-	{ return signature_.at(index).first; }
+	{ return signature_->at(index).first; }
 
 	Type NativeCallNode::operator[](std::size_t index) const noexcept
 	{ return at(index); }
@@ -422,18 +415,18 @@ namespace vm
 
 
 	ForNode::ForNode(Variable *var,
-						ASTNode *expr,
-						Block * body,
+						std::unique_ptr<ASTNode> expr,
+						std::unique_ptr<Block> body,
 						Location start,
 						Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
 		, variable_(var)
-		, expr_(expr)
-		, body_(body)
+		, expr_(expr.release())
+		, body_(body.release())
 	{
-		assert(var);
-		assert(expr);
-		assert(body);
+		assert(variable_);
+		assert(expr_);
+		assert(body_);
 	}
 
 	ForNode::~ForNode()
@@ -462,13 +455,13 @@ namespace vm
 
 
 
-	WhileNode::WhileNode(ASTNode * expr,
-							Block * body,
+	WhileNode::WhileNode(std::unique_ptr<ASTNode> expr,
+							std::unique_ptr<Block> body,
 							Location start,
 							Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
-		, expr_(expr)
-		, body_(body)
+		, expr_(expr.release())
+		, body_(body.release())
 	{
 		assert(expr_);
 		assert(body_);
@@ -494,12 +487,12 @@ namespace vm
 
 
 
-	ReturnNode::ReturnNode(ASTNode *expr,
+	ReturnNode::ReturnNode(std::unique_ptr<ASTNode> expr,
 							Location start,
 							Location finish) noexcept
 		: ASTNode(start, finish)
-		, expr_(expr)
-	{ assert(expr); }
+		, expr_(expr.release())
+	{ }
 
 	ReturnNode::~ReturnNode()
 	{ delete expression(); }
@@ -512,17 +505,17 @@ namespace vm
 
 
 
-	IfNode::IfNode(ASTNode * expr,
-					Block * if_true,
-					Block * if_false,
+	IfNode::IfNode(std::unique_ptr<ASTNode> expr,
+					std::unique_ptr<Block> if_true,
+					std::unique_ptr<Block> if_false,
 					Location start,
 					Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
-		, expr_(expr)
-		, thn_(if_true)
-		, els_(if_false)
+		, expr_(expr.release())
+		, thn_(if_true.release())
+		, els_(if_false.release())
 	{
-		assert(expr);
+		assert(expr_);
 		assert(thn_);
 		assert(els_);
 	}
@@ -555,16 +548,17 @@ namespace vm
 
 
 	CallNode::CallNode(std::string name,
-						std::vector<ASTNode *> params,
 						Location start,
 						Location finish)
 		: ASTNode(std::move(start), std::move(finish))
 		, name_(std::move(name))
-		, params_(std::move(params))
 	{ }
 
 	CallNode::~CallNode()
-	{ std::for_each(params_.begin(), params_.end(), [](ASTNode * n) { delete n; }); }
+	{
+		std::for_each(params_.begin(), params_.end(),
+				[](ASTNode * n) { delete n; });
+	}
 
 	std::string const & CallNode::name() const noexcept
 	{ return name_; }
@@ -584,17 +578,24 @@ namespace vm
 	ASTNode const * CallNode::operator[](std::size_t index) const noexcept
 	{ return at(index); }
 
+	void CallNode::push_back(std::unique_ptr<ASTNode> arg)
+	{
+		params_.push_back(arg.get());
+		arg.release();
+	}
 
 
-	PrintNode::PrintNode(std::vector<ASTNode *> params,
-							Location start,
-							Location finish)
+
+	PrintNode::PrintNode(Location start,
+							Location finish) noexcept
 		: ASTNode(std::move(start), std::move(finish))
-		, params_(std::move(params))
 	{ }
 
 	PrintNode::~PrintNode()
-	{ std::for_each(params_.begin(), params_.end(), [](ASTNode * n) { delete n; }); }
+	{
+		std::for_each(params_.begin(), params_.end(),
+				[](ASTNode * n) { delete n; });
+	}
 
 	std::size_t PrintNode::parameters_number() const noexcept
 	{ return params_.size(); }
@@ -611,34 +612,43 @@ namespace vm
 	ASTNode const * PrintNode::operator[](std::size_t index) const noexcept
 	{ return at(index); }
 
-	void PrintNode::push_back(ASTNode * expr)
-	{ params_.push_back(expr); }
+	void PrintNode::push_back(std::unique_ptr<ASTNode> expr)
+	{
+		params_.push_back(expr.get());
+		expr.release();
+	}
 
 
 
-	Function::Function(Signature signature,
-						Block * body,
+	Function::Function(std::unique_ptr<Signature> signature,
+						std::unique_ptr<Block> body,
 						Location start,
-						Location finish)
+						Location finish) noexcept
 		: LocatedInFile(start, finish)
-		, signature_(std::move(signature))
-		, body_(body)
-	{ assert(body); }
+		, signature_(signature.release())
+		, body_(body.release())
+	{
+		assert(signature_);
+		assert(body_);
+	}
 
 	Function::~Function()
-	{ delete body(); }
+	{
+		delete signature_;
+		delete body();
+	}
 
 	std::string const & Function::name() const noexcept
-	{ return signature_.name(); }
+	{ return signature_->name(); }
 
 	Type Function::return_type() const noexcept
-	{ return signature_.return_type(); }
+	{ return signature_->return_type(); }
 
 	Type Function::type_at(std::size_t index) const noexcept
-	{ return signature_.at(index).first; }
+	{ return signature_->at(index).first; }
 
 	std::string const & Function::name_at(std::size_t index) const noexcept
-	{ return signature_.at(index).second; }
+	{ return signature_->at(index).second; }
 
 	Block * Function::body() noexcept
 	{ return body_; }

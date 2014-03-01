@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <memory>
 
 #include <common.hpp>
 #include <token.hpp>
@@ -103,7 +104,6 @@ namespace vm
 		typedef std::map<std::string, Function *> Functions;
 
 	public:
-		/* It's not best solution, but it is much better then huge ugly BaseIterator */
 		typedef Variables::iterator variable_iterator;
 		typedef Functions::iterator function_iterator;
 
@@ -119,8 +119,8 @@ namespace vm
 		Function * lookup_function(std::string const & name) noexcept;
 		Function const * lookup_function(std::string const & name) const noexcept;
 
-		bool define_variable(Variable *var, bool replace = false);
-		bool define_function(Function *fun, bool replace = false);
+		void define_variable(std::unique_ptr<Variable> var);
+		void define_function(std::unique_ptr<Function> fun);
 
 		Scope * owner() noexcept;
 		Scope const * owner() const noexcept;
@@ -141,9 +141,9 @@ namespace vm
 		Variables variables_;
 		Functions functions_;
 		Scope *owner_;
-		std::vector<Scope *> children_;
+		std::vector<Scope const *> children_;
 
-		void register_child(Scope * child);
+		void register_child(Scope const * child);
 	};
 
 	class ASTNode : public LocatedInFile
@@ -206,7 +206,7 @@ namespace vm
 		ASTNode * operator[](std::size_t index) noexcept;
 		ASTNode const * operator[](std::size_t index) const noexcept;
 
-		void push_back(ASTNode * node);
+		void push_back(std::unique_ptr<ASTNode> node);
 
 	private:
 		std::vector<ASTNode *> instructions_;
@@ -217,8 +217,8 @@ namespace vm
 	{
 	public:
 		BinaryExprNode(Token::Kind kind,
-						ASTNode *left,
-						ASTNode *right,
+						std::unique_ptr<ASTNode> left,
+						std::unique_ptr<ASTNode> right,
 						Location start = Location(),
 						Location finish = Location()) noexcept;
 
@@ -242,7 +242,7 @@ namespace vm
 	{
 	public:
 		UnaryExprNode(Token::Kind kind,
-						ASTNode *node,
+						std::unique_ptr<ASTNode> node,
 						Location start = Location(),
 						Location finish = Location()) noexcept;
 		virtual ~UnaryExprNode();
@@ -313,7 +313,7 @@ namespace vm
 	{
 	public:
 		StoreNode(Variable * var,
-					ASTNode *expr,
+					std::unique_ptr<ASTNode> expr,
 					Token::Kind kind,
 					Location start = Location(),
 					Location finish = Location()) noexcept;
@@ -337,9 +337,10 @@ namespace vm
 	class NativeCallNode : public ASTNode
 	{
 	public:
-		NativeCallNode(Signature signature,
+		NativeCallNode(std::unique_ptr<Signature> signature,
 						Location start = Location(),
-						Location finish = Location());
+						Location finish = Location()) noexcept;
+		virtual ~NativeCallNode();
 
 		std::string const & name() const noexcept;
 		Type return_type() const noexcept;
@@ -349,15 +350,15 @@ namespace vm
 		Type operator[](std::size_t index) const noexcept;
 
 	private:
-		Signature signature_;
+		Signature *signature_;
 	};
 
 	class ForNode : public ASTNode
 	{
 	public:
 		ForNode(Variable * var,
-				ASTNode *expr,
-				Block *body,
+				std::unique_ptr<ASTNode> expr,
+				std::unique_ptr<Block> body,
 				Location start = Location(),
 				Location finish = Location()) noexcept;
 
@@ -381,8 +382,8 @@ namespace vm
 	class WhileNode : public ASTNode
 	{
 	public:
-		WhileNode(ASTNode * expr,
-					Block * body,
+		WhileNode(std::unique_ptr<ASTNode> expr,
+					std::unique_ptr<Block> body,
 					Location start = Location(),
 					Location finish = Location()) noexcept;
 
@@ -402,7 +403,7 @@ namespace vm
 	class ReturnNode : public ASTNode
 	{
 	public:
-		ReturnNode(ASTNode *expr = nullptr,
+		ReturnNode(std::unique_ptr<ASTNode> expr = std::unique_ptr<ASTNode>(),
 					Location start = Location(),
 					Location finish = Location()) noexcept;
 
@@ -418,9 +419,9 @@ namespace vm
 	class IfNode : public ASTNode
 	{
 	public:
-		IfNode(ASTNode * expr,
-				Block * if_true,
-				Block * if_false = nullptr,
+		IfNode(std::unique_ptr<ASTNode> expr,
+				std::unique_ptr<Block> if_true,
+				std::unique_ptr<Block> if_false = std::unique_ptr<Block>(),
 				Location start = Location(),
 				Location finish = Location()) noexcept;
 
@@ -445,7 +446,6 @@ namespace vm
 	{
 	public:
 		CallNode(std::string name,
-					std::vector<ASTNode *> params,
 					Location start = Location(),
 					Location finish = Location());
 
@@ -460,6 +460,8 @@ namespace vm
 		ASTNode * operator[](std::size_t index) noexcept;
 		ASTNode const * operator[](std::size_t index) const noexcept;
 
+		void push_back(std::unique_ptr<ASTNode> arg);
+
 	private:
 		std::string name_;
 		std::vector<ASTNode *> params_;
@@ -468,9 +470,8 @@ namespace vm
 	class PrintNode : public ASTNode
 	{
 	public:
-		PrintNode(std::vector<ASTNode *> params,
-					Location start = Location(),
-					Location finish = Location());
+		PrintNode(Location start = Location(),
+					Location finish = Location()) noexcept;
 
 		virtual ~PrintNode();
 
@@ -482,7 +483,7 @@ namespace vm
 		ASTNode * operator[](std::size_t index) noexcept;
 		ASTNode const * operator[](std::size_t index) const noexcept;
 
-		void push_back(ASTNode * expr);
+		void push_back(std::unique_ptr<ASTNode> expr);
 
 	private:
 		std::vector<ASTNode *> params_;
@@ -491,10 +492,10 @@ namespace vm
 	class Function : public LocatedInFile
 	{
 	public:
-		Function(Signature signature,
-					Block * body,
+		Function(std::unique_ptr<Signature> signature,
+					std::unique_ptr<Block> body,
 					Location start = Location(),
-					Location finish = Location());
+					Location finish = Location()) noexcept;
 
 		virtual ~Function();
 
@@ -509,7 +510,7 @@ namespace vm
 		Block const * body() const noexcept;
 
 	private:
-		Signature signature_;
+		Signature * signature_;
 		Block * body_;
 	};
 
