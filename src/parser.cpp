@@ -326,9 +326,42 @@ namespace vm
 			return nullptr;
 
 		Function * const fun = new(std::nothrow) Function(Signature(detail::token_to_type(tp.kind()), nm.value(), parameters), body, tp.location(), location());
+		assert(fun);
 		scope()->define_function(fun);
 
 		return fun;
+	}
+
+	WhileNode * Parser::parse_while()
+	{
+		Location const start = location();
+
+		assert(ensure_token(Token::while_kw));
+
+		if (!ensure_token(Token::lparen))
+		{
+			error("( expected", location());
+			return nullptr;
+		}
+
+		ASTNode * const expr = parse_expression();
+		if (!expr)
+			return nullptr;
+
+		if (!ensure_token(Token::rparen))
+		{
+			error(") expected", location());
+			return nullptr;
+		}
+
+		BlockNode * const body = parse_block();
+		if (!body)
+			return nullptr;
+
+		WhileNode * const loop = new (std::nothrow) WhileNode(expr, body, start, location());
+		assert(loop);
+
+		return loop;
 	}
 
 }
