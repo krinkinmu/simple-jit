@@ -364,7 +364,7 @@ namespace vm
 		return loop;
 	}
 
-	ForNode * parse_for()
+	ForNode * Parser::parse_for()
 	{
 		Location const start = location();
 
