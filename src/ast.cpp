@@ -8,12 +8,9 @@ namespace vm
 {
 
 
-	Signature::Signature(Type rtype,
-							std::string name,
-							Signature::ParametersType params)
+	Signature::Signature(Type rtype, std::string name)
 		: return_type_(rtype)
 		, name_(std::move(name))
-		, params_(std::move(params))
 	{ }
 
 	Type Signature::return_type() const noexcept
@@ -40,6 +37,9 @@ namespace vm
 	Signature::ParamType const &
 		Signature::operator[](std::size_t index) const noexcept
 		{ return at(index); }
+
+	void Signature::push_back(Signature::ParamType param)
+	{ params_.push_back(std::move(param)); }
 
 
 

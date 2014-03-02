@@ -58,7 +58,7 @@ namespace vm
 		typedef std::pair<Type, std::string> ParamType;
 		typedef std::vector<ParamType> ParametersType;
 
-		Signature(Type rtype, std::string name, ParametersType params = ParametersType());
+		Signature(Type rtype, std::string name);
 
 		Signature(Signature const &) = default;
 		Signature(Signature &&) = default;
@@ -75,6 +75,8 @@ namespace vm
 
 		ParamType const & at(std::size_t index) const noexcept;
 		ParamType const & operator[](std::size_t index) const noexcept;
+
+		void push_back(ParamType param);
 
 	private:
 		Type return_type_;
