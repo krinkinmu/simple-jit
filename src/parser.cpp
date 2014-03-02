@@ -5,9 +5,26 @@
 namespace vm
 {
 
+	Program::Program(std::unique_ptr<Function> fun, std::unique_ptr<Scope> scope) noexcept;
+		: top_(fun.release())
+		, scope_(scope.release())
+	{ }
+
+	Program::~Program()
+	{
+		delete top_;
+		delete scope_;
+	}
+
+	Function const * Program::top_level() const noexcept
+	{ return top_; }
+
+	Function * Program::top_level() noexcept
+	{ return top_; }
+
+
 	Parser::Parser()
-		: top_(nullptr)
-		, scope_(nullptr)
+		: scope_(nullptr)
 	{ }
 
 	Parser::~Parser()
@@ -19,30 +36,29 @@ namespace vm
 	bool Parser::is_ok() const noexcept
 	{ return status_->code() != Status::ERROR; }
 
-	Function * Parser::parse(std::string const & code)
+	std::unique_ptr<Program> Parser::parse(std::string const & code)
 	{
 		Status status;
 		return parse(code, status);
 	}
 
-	Function * Parser::parse(std::string const & code, Status & status)
+	std::unique_ptr<Program> Parser::parse(std::string const & code, Status & status)
 	{
 		clear();
 		if (Scanner().scan(code, tokens_, status) == Status::ERROR)
 			return nullptr;
-
 		status_ = &status;
 
 		push_scope();
-		Function * top = parse_toplevel();
-		if (!top)
-			delete scope();
-		return top;
+		std::unique_ptr<Scope> top_scope = scope();
+		std::unique_ptr<Function> top = parse_toplevel();
+		pop_scope();
+
+		return new Program(top, top_scope);
 	}
 
 	void Parser::clear() noexcept
 	{
-		top_ = nullptr;
 		scope_ = nullptr;
 		status_ = nullptr;
 		tokens_.clear();
@@ -76,10 +92,7 @@ namespace vm
 	}
 
 	void Parser::push_scope()
-	{
-		scope_ = new(std::nothrow) Scope(scope_);
-		assert(scope_);
-	}
+	{ scope_ = new Scope(scope_); }
 
 	void Parser::pop_scope()
 	{
@@ -90,42 +103,38 @@ namespace vm
 	Scope * Parser::scope() noexcept
 	{ return scope_; }
 
-	Function * Parser::parse_toplevel()
+	std::unique_ptr<Function> Parser::parse_toplevel()
 	{
-		Block * const body = new(std::nothrow) Block(scope());
-		assert(body);
-
+		std::unique_ptr<Block> body = new Block(scope());
 		while (peek_token() != Token::eof)
 		{
 			if (ensure_token(Token::semi))
 				continue;
 
-			ASTNode * const node = parse_statement();
+			std::unique_ptr<ASTNode> node = parse_statement();
 			if (!node)
 				return nullptr;
 			body->push_back(node);
 		}
 
-		Function * const top = new(std::nothrow) Function(Signature(Type::Void, "_start"), body);
-		assert(top);
+		std::unique_ptr<Signature> sign = new Signature(Type::Void, "_start");
+		std::unique_ptr<Function> top = new Function(sign, body);
 
 		return top;
 	}
 
-	Block * Parser::parse_block()
+	std::unique_ptr<Block> Parser::parse_block()
 	{
 		push_scope();	
 		assert(ensure_token(Token::lbrace));
 
-		std::unique_ptr<Block> blk(new (std::nothrow) Block(scope()));
-		assert(blk.get());
-
+		std::unique_ptr<Block> blk(new Block(scope()));
 		while (peek_token() != Token::rbrace)
 		{
 			if (ensure_token(Token::semi))
 				continue;
 
-			ASTNode * const stmt = parse_statement();
+			std::unique_ptr<ASTNode> stmt = parse_statement();
 			if (!stmt)
 				return nullptr;
 			blk->push_back(stmt);
@@ -134,10 +143,10 @@ namespace vm
 		assert(ensure_token(Token::rbrace));
 		pop_scope();
 
-		return blk.release();
+		return blk;
 	}
 
-	ASTNode * Parser::parse_statement()
+	std::unique_ptr<ASTNode> Parser::parse_statement()
 	{
 		Token::Kind const tok = peek_token();
 		if (Token::is_keyword(tok))
@@ -174,7 +183,7 @@ namespace vm
 		return parse_expression();
 	}
 
-	ASTNode * Parser::parse_assignment()
+	std::unique_ptr<ASTNode> Parser::parse_assignment()
 	{
 		Token const var = extract_token();
 		assert(var.kind() == Token::ident);
@@ -189,21 +198,14 @@ namespace vm
 		Token const op = extract_token();
 		assert(Token::is_assignment(op.kind()));
 
-		ASTNode * const expr = parse_expression();
+		std::unique_ptr<ASTNode> expr = parse_expression();
 		if (!expr)
 			return nullptr;
 
-		StoreNode * const store = new(std::nothrow) StoreNode(variable,
-																expr,
-																op,
-																var.location(), 
-																expr->finish());
-		assert(store);
-
-		return store;
+		return new StoreNode(variable, expr, op, var.location(), expr->finish());
 	}
 
-	CallNode * Parser::parse_call()
+	std::unique_ptr<CallNode> Parser::parse_call()
 	{
 		Token const fun = extract_token();
 		assert(fun.kind() == Token::ident);
@@ -211,28 +213,27 @@ namespace vm
 		std::string const & function = fun.value();
 		assert(ensure_token(Token::lparen));
 
-		std::vector<ASTNode *> args;
+		std::unique_ptr<CallNode> call = new CallNode(function, fun.location());
 		while (peek_token() != Token::rparen)
 		{
-			ASTNode * const arg = parse_expression();
+			std::unique_ptr<ASTNode> arg = parse_expression();
 			if (!arg)
-			{
-				std::for_each(args.begin(), args.end(), [](ASTNode * node){ delete node; });
 				return nullptr;
-			}
-			args->push_back(arg);
+			call->push_back(arg);
 
 			if (!ensure_token(Token::comma) && peek_token() != Token::rparen)
 			{
-				std::for_each(args.begin(), args.end(), [](ASTNode * node){ delete node; });
 				error("expected comma or bracket", location());
 				return nullptr;
 			}
 		}
-		assert(ensure_token(Token::rparen));
+		call->set_finish(location());
 
-		CallNode * const call = new(std::nothrow) CallNode(function, args, fun.location(), location());
-		assert(call);
+		if (!ensure_token(Token::rparen))
+		{
+			error("expected )", location());
+			return nullptr;
+		}
 
 		return call;
 	}
@@ -253,32 +254,31 @@ namespace vm
 		}
 	}
 
-	Function * parse_function()
+	std::unique_ptr<Function> Parser::parse_function()
 	{
 		assert(ensure_token(Token::function_kw));
 
 		Token const tp = extract_token();
 		if (!Token::is_typename())
 		{
-			error("function return type expected", tp.location());
+			error("type expected", tp.location());
 			return nullptr;
 		}
 
 		Token const nm = extract_token();
 		if (nm.kind() != Token::ident)
 		{
-			error("function name expected", nm.location());
+			error("indentifier expected", nm.location());
 			return nullptr;
 		}
 
 		if (!ensure_token(Token::lparen))
 		{
-			error("open bracket expected", location());
+			error("( expected", location());
 			return nullptr;
 		}
-		
-		typedef Signature::ParametersType ParametersType;
-		ParametersType parameters;
+
+		std::unique_ptr<Signature> sign = new Signature(detail::token_to_type(tp.kind()), nm.value());
 		while (peek_token() != Token::rparen)
 		{
 			Token const param_type = extract_token();
@@ -295,10 +295,10 @@ namespace vm
 				return nullptr;
 			}
 
-			parameters.emplace_back(
+			sign->push_back(
 					std::make_pair(
-						detail::token_to_type(param_type.kind(),
-							param_name.value())
+							detail::token_to_type(param_type.kind()),
+							param_name.value()
 						)
 					);
 
@@ -308,31 +308,35 @@ namespace vm
 				return nullptr;
 			}
 		}
-		assert(ensure_token(Token::rparen));
+
+		if (!ensure_token(Token::rparen))
+		{
+			error(") expected", location());
+			return nullptr;
+		}
 
 		push_scope();
-		ParametersType::const_iterator const begin(parameters.begin());
-		ParametersType::const_iterator const end(parameters.end());
+
+		ParametersType::const_iterator const begin(sign->begin());
+		ParametersType::const_iterator const end(sign->end());
 		for (ParametersType::const_iterator it = begin(); it != end(); ++it)
 		{
-			Variable * const var = new (std::nothrow) Variable(it->first, it->second, tp.location(), location());
-			assert(var);
+			std::unique_ptr<Variable> var = new Variable(it->first, it->second, tp.location(), location());
 			scope()->define_variable(var);
 		}
-		Block * const body = parse_block();
-		pop_scope();
-
+		std::unique_ptr<Block> body = parse_block();
 		if (!body)
 			return nullptr;
 
-		Function * const fun = new(std::nothrow) Function(Signature(detail::token_to_type(tp.kind()), nm.value(), parameters), body, tp.location(), location());
-		assert(fun);
+		pop_scope();
+
+		std::unique_ptr<Function> fun = new Function(sign, body, tp.location(), location());
 		scope()->define_function(fun);
 
 		return fun;
 	}
 
-	WhileNode * Parser::parse_while()
+	std::unique_ptr<WhileNode> Parser::parse_while()
 	{
 		Location const start = location();
 
@@ -344,7 +348,7 @@ namespace vm
 			return nullptr;
 		}
 
-		ASTNode * const expr = parse_expression();
+		std::unique_ptr<ASTNode> expr = parse_expression();
 		if (!expr)
 			return nullptr;
 
@@ -354,17 +358,14 @@ namespace vm
 			return nullptr;
 		}
 
-		Block * const body = parse_block();
+		std::unique_ptr<Block> body = parse_block();
 		if (!body)
 			return nullptr;
 
-		WhileNode * const loop = new (std::nothrow) WhileNode(expr, body, start, location());
-		assert(loop);
-
-		return loop;
+		return new WhileNode(expr, body, start, location());
 	}
 
-	ForNode * Parser::parse_for()
+	std::unique_ptr<ForNode> Parser::parse_for()
 	{
 		Location const start = location();
 
@@ -389,7 +390,7 @@ namespace vm
 			return nullptr;
 		}
 
-		ASTNode * const expr = parse_expression();
+		std::unique_ptr<ASTNode> expr = parse_expression();
 		if (!expr)
 			return nullptr;
 
@@ -399,7 +400,7 @@ namespace vm
 			return nullptr;
 		}
 
-		Block * const body = parse_block();
+		std::unique_ptr<Block> body = parse_block();
 		if (!body)
 			return nullptr;
 
@@ -410,13 +411,10 @@ namespace vm
 			return nullptr;
 		}
 
-		ForNode * const loop = new (std::nothrow) ForNode(v, expr, body, start, location());
-		assert(loop);
-
-		return loop;
+		return new ForNode(v, expr, body, start, location());
 	}
 
-	IfNode * Parser::parse_if()
+	std::unique_ptr<IfNode> Parser::parse_if()
 	{
 		Location const start = location();
 
@@ -428,7 +426,7 @@ namespace vm
 			return nullptr;
 		}
 
-		ASTNode * const expr = parse_exception();
+		std::unique_ptr<ASTNode> expr = parse_exception();
 
 		if (!ensure_token(Token::rparen))
 		{
@@ -436,22 +434,19 @@ namespace vm
 			return nullptr;
 		}
 
-		Block * const then_body = parse_block();
+		std::unique_ptr<Block> then_body = parse_block();
 		if (!then_body)
 			return nullptr;
 
-		Block * else_body = nullptr;
+		std::unique_ptr<Block> else_body = nullptr;
 		if (ensure_token(Token::else_kw))
 		{
-			else_body = parse_block();
+			else_body.reset(parse_block());
 			if (!else_body)
 				return nullptr;
 		}
 
-		IfNode * const cond = new (std::nothrow) IfNode(expr, then_body, else_body, start, location());
-		assert(cond);
-
-		return nullptr;
+		return new IfNode(expr, then_body, else_body, start, location());
 	}
 
 }

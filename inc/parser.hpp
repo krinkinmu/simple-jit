@@ -7,6 +7,20 @@
 namespace vm
 {
 
+	class Program
+	{
+	public:
+		Program(std::unique_ptr<Function> fun, std::unique_ptr<Scope> scope) noexcept;
+		~Program();
+
+		Function const * top_level() const noexcept;
+		Function * top_level() noexcept;
+
+	private:
+		Function * top_;
+		Scope * scope_;
+	};
+
 	class Parser
 	{
 	public:
@@ -19,11 +33,10 @@ namespace vm
 		Parser(Parser &&) noexcept = default;
 		Parser & operator=(Parser &&) noexcept = delete;
 
-		Function * parse(std::string const & code);
-		Function * parse(std::string const & code, Status & status);
+		std::unique_ptr<Program> parse(std::string const & code);
+		std::unique_ptr<Program> parse(std::string const & code, Status & status);
 
 	private:
-		Function *top_;
 		Scope *scope_;
 		Status *status_;
 		TokenList tokens_;
@@ -43,20 +56,20 @@ namespace vm
 		Scope * scope() noexcept;
 
 		void clear() noexcept;
-		Function * parse_toplevel();
+		std::unique_ptr<Function> parse_toplevel();
 
-		Block * parse_block();
-		ASTNode * parse_statement();
-		StoreNode * parse_assignment();
-		CallNode * parse_call();
-		WhileNode * parse_while();
-		ForNode * parse_for();
-		IfNode * parse_if();
-		ReturnNode * parse_return();
-		PrintNode * parse_print();
-		ASTNode * parse_declaration();
-		ASTNode * parse_expression();
-		ASTNode * parse_function();
+		std::unique_ptr<Block> parse_block();
+		std::unique_ptr<ASTNode> parse_statement();
+		std::unique_ptr<StoreNode> parse_assignment();
+		std::unique_ptr<CallNode> parse_call();
+		std::unique_ptr<WhileNode> parse_while();
+		std::unique_ptr<ForNode> parse_for();
+		std::unique_ptr<IfNode> parse_if();
+		std::unique_ptr<ReturnNode> parse_return();
+		std::unique_ptr<PrintNode> parse_print();
+		std::unique_ptr<ASTNode> parse_declaration();
+		std::unique_ptr<ASTNode> parse_expression();
+		std::unique_ptr<ASTNode> parse_function();
 	};
 
 }
