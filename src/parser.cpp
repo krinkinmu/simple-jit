@@ -136,7 +136,11 @@ namespace vm
 
 			if (peek_token() == Token::function_kw)
 			{
-				parse_function();
+				std::unique_ptr<Function> fun = parse_function();
+				if (!fun)
+					return nullptr;
+
+				scope()->define_function(fun);
 				continue;
 			}
 
@@ -322,10 +326,7 @@ namespace vm
 
 		pop_scope();
 
-		std::unique_ptr<Function> fun = new Function(sign, body, tp.location(), location());
-		scope()->define_function(fun);
-
-		return fun;
+		return new Function(sign, body, tp.location(), location());
 	}
 
 	std::unique_ptr<WhileNode> Parser::parse_while()
