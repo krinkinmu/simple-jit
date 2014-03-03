@@ -214,7 +214,7 @@ namespace vm
 		assert(ensure_token(Token::lparen));
 
 		std::unique_ptr<CallNode> call = new CallNode(function, fun.location());
-		while (peek_token() != Token::rparen)
+		while (!ensure_token(Token::rparen))
 		{
 			std::unique_ptr<ASTNode> arg = parse_expression();
 			if (!arg)
@@ -228,12 +228,6 @@ namespace vm
 			}
 		}
 		call->set_finish(location());
-
-		if (!ensure_token(Token::rparen))
-		{
-			error("expected )", location());
-			return nullptr;
-		}
 
 		return call;
 	}
@@ -279,7 +273,7 @@ namespace vm
 		}
 
 		std::unique_ptr<Signature> sign = new Signature(detail::token_to_type(tp.kind()), nm.value());
-		while (peek_token() != Token::rparen)
+		while (!ensure_token(Token::rparen))
 		{
 			Token const param_type = extract_token();
 			if (!Token::is_typename(param_type.kind()))
@@ -307,12 +301,6 @@ namespace vm
 				error(", or ) expected", location());
 				return nullptr;
 			}
-		}
-
-		if (!ensure_token(Token::rparen))
-		{
-			error(") expected", location());
-			return nullptr;
 		}
 
 		push_scope();
@@ -404,7 +392,7 @@ namespace vm
 		if (!body)
 			return nullptr;
 
-		Variable * const v = scope()->lookup_variable(var.value());
+		Variable const * const v = scope()->lookup_variable(var.value());
 		if (!v)
 		{
 			error("unknown variable" + var.value(), var.location());
@@ -447,6 +435,59 @@ namespace vm
 		}
 
 		return new IfNode(expr, then_body, else_body, start, location());
+	}
+
+	std::unique_ptr<ReturnNode> Parser::parse_return()
+	{
+		Location const loc = location();
+
+		assert(ensure_token(Token::return_kw));
+
+		if (ensure_token(Token::semi))
+			return new ReturnNode(loc, loc);
+
+		std::unique_ptr<ReturnNode> ret = parse_expression();
+		if (!ensure_token(Token::semi))
+		{
+			error("; expected", location());
+			return nullptr;
+		}
+
+		return new ReturnNode(ret, loc, location());
+	}
+
+	std::unique_ptr<PrintNode> Parser::parse_print()
+	{
+		Location const loc = location();
+
+		assert(ensure_token(Token::return_kw));
+
+		if (!ensure_token(Token::lparen))
+		{
+			error("( expected", location());
+			return nullptr;
+		}
+
+		std::unique_ptr<PrintNode> print = new PrintNode(loc);
+		while (!ensure_token(Token::rparen))
+		{
+			std::unique_ptr<ASTNode> expr = parse_expression();
+			print->push_back(expr);
+			if (!ensure_token(Token::comma) && peek_token() != Token::rparen)
+			{
+				error(", or ) expected", location());
+				return nullptr;
+			}
+		}
+		print->set_finish(location());
+
+		if (!ensure_token(Token::semi))
+		{
+			error("; expected", location());
+			return nullptr;
+		}
+
+		return print;
 	}
 
 }
