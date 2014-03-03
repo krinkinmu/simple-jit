@@ -150,8 +150,13 @@ namespace vm
 			blk->push_back(stmt);
 		}
 
-		assert(ensure_token(Token::rbrace));
 		pop_scope();
+
+		if (!ensure_token(Token::rbrace))
+		{
+			error("} expected", location());
+			return nullptr;
+		}
 
 		return blk;
 	}
@@ -219,7 +224,11 @@ namespace vm
 		assert(fun.kind() == Token::ident);
 
 		std::string const & function = fun.value();
-		assert(ensure_token(Token::lparen));
+		if (!ensure_token(Token::lparen))
+		{
+			error("( expected", location());
+			return nullptr;
+		}
 
 		std::unique_ptr<CallNode> call = new CallNode(function, fun.location());
 		while (!ensure_token(Token::rparen))
