@@ -134,6 +134,12 @@ namespace vm
 			if (ensure_token(Token::semi))
 				continue;
 
+			if (peek_token() == Token::function_kw)
+			{
+				parse_function();
+				continue;
+			}
+
 			std::unique_ptr<ASTNode> stmt = parse_statement();
 			if (!stmt)
 				return nullptr;
@@ -154,8 +160,6 @@ namespace vm
 			switch (tok)
 			{
 			default: assert(0);
-			case Token::function_kw:
-				return parse_function();
 			case Token::if_kw:
 				return parse_if();
 			case Token::for_kw:
@@ -488,6 +492,10 @@ namespace vm
 		}
 
 		return print;
+	}
+
+	std::unique_ptr<ASTNode> Parser::parse_declaration()
+	{
 	}
 
 }
