@@ -112,9 +112,11 @@ namespace vm
 				continue;
 
 			std::unique_ptr<ASTNode> node = parse_statement();
-			if (!node)
+			if (!is_ok())
 				return nullptr;
-			body->push_back(node);
+
+			if (node)
+				body->push_back(node);
 		}
 
 		std::unique_ptr<Signature> sign = new Signature(Type::Void, "_start");
@@ -145,9 +147,11 @@ namespace vm
 			}
 
 			std::unique_ptr<ASTNode> stmt = parse_statement();
-			if (!stmt)
+			if (!is_ok())
 				return nullptr;
-			blk->push_back(stmt);
+
+			if (stmt)
+				blk->push_back(stmt);
 		}
 
 		pop_scope();
@@ -168,7 +172,9 @@ namespace vm
 		{
 			switch (tok)
 			{
-			default: assert(0);
+			default:
+				error("unexpected token", location());
+				return nullptr;
 			case Token::if_kw:
 				return parse_if();
 			case Token::for_kw:
@@ -279,7 +285,7 @@ namespace vm
 		Token const nm = extract_token();
 		if (nm.kind() != Token::ident)
 		{
-			error("indentifier expected", nm.location());
+			error("identifier expected", nm.location());
 			return nullptr;
 		}
 
@@ -429,6 +435,8 @@ namespace vm
 		}
 
 		std::unique_ptr<ASTNode> expr = parse_exception();
+		if (!expr)
+			return nullptr;
 
 		if (!ensure_token(Token::rparen))
 		{
@@ -457,15 +465,12 @@ namespace vm
 
 		assert(ensure_token(Token::return_kw));
 
-		if (ensure_token(Token::semi))
+		if (peek_token() == Token::semi)
 			return new ReturnNode(loc, loc);
 
 		std::unique_ptr<ReturnNode> ret = parse_expression();
-		if (!ensure_token(Token::semi))
-		{
-			error("; expected", location());
+		if (!ret)
 			return nullptr;
-		}
 
 		return new ReturnNode(ret, loc, location());
 	}
@@ -486,6 +491,9 @@ namespace vm
 		while (!ensure_token(Token::rparen))
 		{
 			std::unique_ptr<ASTNode> expr = parse_expression();
+			if (!expr)
+				return nullptr;
+
 			print->push_back(expr);
 			if (!ensure_token(Token::comma) && peek_token() != Token::rparen)
 			{
@@ -494,18 +502,34 @@ namespace vm
 			}
 		}
 		print->set_finish(location());
-
-		if (!ensure_token(Token::semi))
-		{
-			error("; expected", location());
-			return nullptr;
-		}
-
 		return print;
 	}
 
 	std::unique_ptr<ASTNode> Parser::parse_declaration()
 	{
+		Type type = detail::token_to_type(extract_token().kind());
+		assert(type != Type::Invalid && type != Type::Void);
+
+		Token const name = extract_token();
+		if (name.kind() != Token::ident)
+		{
+			error("identifier expected", name.location());
+			return nullptr;
+		}
+
+		std::unique_ptr<Variable> variable = new Variable(type, name.value(), name.location(), name.location());
+		Variable * ptr = variable.get();
+
+		if (!ensure_token(Token::assign))
+			return nullptr;
+
+		std::unique_ptr<ASTNode> expr = parse_expression();
+		if (!expr)
+			return nullptr;
+
+		scope()->define_variable(variable);
+
+		return new StoreNode(ptr, expr, name.location(), location());
 	}
 
 }
