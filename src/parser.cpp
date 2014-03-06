@@ -532,4 +532,36 @@ namespace vm
 		return new StoreNode(ptr, expr, name.location(), location());
 	}
 
+	std::unique_ptr<ASTNode> Parser::parse_expression()
+	{ return parse_binary(); }
+
+	std::unique_ptr<ASTNode> Parser::parse_binary(int prev)
+	{
+		std::unique_ptr<ASTNode> left = parse_unary();
+		if (!left)
+			return nullptr;
+
+		int prec = Token::get_precedence(peek_token());
+		if (prec <= 0)
+		{
+			error("operator expected", location());
+			return nullptr;
+		}
+
+		while (prec >= prev)
+		{
+			while (Token::get_precedence(peek_token()) == prec)
+			{
+				Token const op = extract_token();
+				std::unique_ptr<ASTNode> right = parse_binary();
+				if (!right)
+					return nullptr;
+				left = new BinaryExprNode(op.kind(), left, right, left.start(), right.finish());
+			}
+			prec = Token::get_precedence(peek_token());
+		}
+
+		return left;
+	}
+
 }

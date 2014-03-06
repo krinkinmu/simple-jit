@@ -58,6 +58,9 @@ namespace vm
 		void clear() noexcept;
 		std::unique_ptr<Function> parse_toplevel();
 
+		std::unique_ptr<ASTNode> parse_binary(int precedence = 1);
+		std::unique_ptr<ASTNode> parse_unary();
+
 		std::unique_ptr<Block> parse_block();
 		std::unique_ptr<ASTNode> parse_statement();
 		std::unique_ptr<StoreNode> parse_assignment();
