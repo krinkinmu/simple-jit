@@ -73,6 +73,7 @@ namespace vm {
 	
 		static char const * get_token_value(Token::Kind kind) noexcept;
 		static Kind get_token_kind(char const * value) noexcept;
+		static int get_precedence(Token::Kind kind) noexcept;
 		static bool is_keyword(Token::Kind kind) noexcept;
 		static bool is_assignment(Token::Kind kind) noexcept;
 		static bool is_typename(Token::Kind kind) noexcept;

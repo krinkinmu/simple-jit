@@ -13,11 +13,25 @@ namespace vm
 		""
 	};
 
+	static int const token_precedence[] = {
+		#define PRECEDENCE(k, s, p) p,
+		FOR_TOKENS(PRECEDENCE)
+		#undef VALUE
+		-1
+	};
+
 	char const * Token::get_token_value(Token::Kind kind) noexcept
 	{
 		assert(kind > Token::undef && kind < Token::token_count);
 
 		return token_values[static_cast<size_t>(kind)];
+	}
+
+	int Token::get_precedence(Token::Kind kind) noexcept
+	{
+		assert(kind > Token::undef && kind < Token::token_count);
+
+		return token_precedence[static_cast<size_t>(kind)];
 	}
 
 	Token::Kind Token::get_token_kind(char const * value) noexcept
