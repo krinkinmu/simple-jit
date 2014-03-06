@@ -564,4 +564,66 @@ namespace vm
 		return left;
 	}
 
+	namespace detail
+	{
+
+		bool is_unary(Token::Kind kind) noexcept
+		{ return kind == Token::lnot || kind == Token::sub; }
+
+	}
+
+	std::unique_ptr<ASTNode> Parser::parse_unary()
+	{
+		if (detail::is_unary(peek_token()))
+		{
+			Token const op = extract_token();
+			std::unique_ptr<ASTNode> expr = parse_unary();
+			if (!expr)
+				return nullptr;
+			return new UnaryExprNode(op.kind(), expr, op.location(), expr.finish());
+		}
+
+		if (peek_token() == Token::ident && peek_token(1) == Token::lparen)
+			return parse_call();
+
+		if (peek_token() == Token::ident)
+		{
+			Token const name = extract_token();
+			Variable * var = scope()->lookup_variable(name.value());
+			if (!var)
+			{
+				error("undefined variable", name.location());
+				return nullptr;
+			}
+			return new LoadNode(var, name.location(), name.location());
+		}
+
+		if (peek_token() == Token::double_l)
+		{ }
+
+		if (peek_token() == Token::int_l)
+		{ }
+
+		if (peek_token() == Token::string_l)
+		{ }
+
+		if (ensure_token(Token::lparen))
+		{
+			std::unique_ptr<ASTNode> expr = parse_expression();
+			if (!expr)
+				return nullptr;
+
+			if (!ensure_token(Token::rparen))
+			{
+				error(") expected", location());
+				return nullptr;
+			}
+
+			return expr;
+		}
+
+		error("unexpected token", location());
+		return nullptr;
+	}
+
 }
