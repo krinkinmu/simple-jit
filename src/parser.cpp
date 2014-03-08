@@ -55,7 +55,7 @@ namespace vm
 		std::unique_ptr<Function> top(parse_toplevel());
 		pop_scope();
 
-		return new Program(top, top_scope);
+		return new Program(std::move(top), std::move(top_scope));
 	}
 
 	void Parser::clear() noexcept
