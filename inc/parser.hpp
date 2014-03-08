@@ -13,6 +13,12 @@ namespace vm
 		Program(std::unique_ptr<Function> fun, std::unique_ptr<Scope> scope) noexcept;
 		~Program();
 
+		Program(Program const &) = delete;
+		Program & operator=(Program const &) = delete;
+
+		Program(Program &&) noexcept = default;
+		Program & operator=(Program &&) noexcept = default;
+
 		Function const * top_level() const noexcept;
 		Function * top_level() noexcept;
 
