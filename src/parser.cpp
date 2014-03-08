@@ -452,12 +452,12 @@ namespace vm
 		std::unique_ptr<Block> else_body = nullptr;
 		if (ensure_token(Token::else_kw))
 		{
-			else_body.reset(parse_block());
+			else_body.reset(parse_block().release());
 			if (!else_body)
 				return nullptr;
 		}
 
-		return new IfNode(std::move(expr), std::move(then_body), std::move(else_body), start, location());
+		return std::unique_ptr<IfNode>(new IfNode(std::move(expr), std::move(then_body), std::move(else_body), start, location()));
 	}
 
 	std::unique_ptr<ReturnNode> Parser::parse_return()
