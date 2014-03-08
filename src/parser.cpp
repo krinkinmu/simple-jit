@@ -602,7 +602,7 @@ namespace vm
 		{ }
 
 		if (peek_token() == Token::int_l)
-		{ }
+			return parse_int();
 
 		if (peek_token() == Token::string_l)
 		{ }
@@ -624,6 +624,24 @@ namespace vm
 
 		error("unexpected token", location());
 		return nullptr;
+	}
+
+	std::unique_ptr<ASTNode> Parser::parse_int()
+	{
+		Token const tok = extract_token();
+		assert(tok.kind() == Token::int_l);
+
+		std::string const & value = tok.value();
+		char * endptr = nullptr;
+
+		long int num = strtol(value.c_str(), &endptr, 10);
+		if (endptr == nullptr || *endptr != '\0')
+		{
+			error("integer literal expected", tok.location());
+			return nullptr;
+		}
+
+		return new IntLitNode(num, tok.location(), tok.location());
 	}
 
 }
