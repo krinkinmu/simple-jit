@@ -334,7 +334,7 @@ namespace vm
 		for (ParametersType::const_iterator it = begin; it != end; ++it)
 		{
 			std::unique_ptr<Variable> var(new Variable(it->first, it->second, tp.location(), location()));
-			scope()->define_variable(std:move(var));
+			scope()->define_variable(std::move(var));
 		}
 		std::unique_ptr<Block> body = parse_block();
 		if (!body)
