@@ -51,8 +51,8 @@ namespace vm
 		status_ = &status;
 
 		push_scope();
-		std::unique_ptr<Scope> top_scope = scope();
-		std::unique_ptr<Function> top = parse_toplevel();
+		std::unique_ptr<Scope> top_scope(scope());
+		std::unique_ptr<Function> top(parse_toplevel());
 		pop_scope();
 
 		return new Program(top, top_scope);
