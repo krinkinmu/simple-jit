@@ -435,7 +435,7 @@ namespace vm
 			return nullptr;
 		}
 
-		std::unique_ptr<ASTNode> expr = parse_exception();
+		std::unique_ptr<ASTNode> expr = parse_expression();
 		if (!expr)
 			return nullptr;
 
