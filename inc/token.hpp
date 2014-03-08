@@ -52,6 +52,7 @@ namespace vm {
 		TOKEN(for_kw, "for", 0)				\
 		TOKEN(while_kw, "while", 0)			\
 		TOKEN(if_kw, "if", 0)				\
+		TOKEN(else_kw, "else", 0)			\
 		TOKEN(print_kw, "print", 0)			\
 		TOKEN(function_kw, "function", 0)	\
 		TOKEN(native_kw, "native", 0)		\
