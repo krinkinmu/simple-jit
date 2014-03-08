@@ -276,7 +276,7 @@ namespace vm
 		assert(ensure_token(Token::function_kw));
 
 		Token const tp = extract_token();
-		if (!Token::is_typename())
+		if (!Token::is_typename(tp.kind()))
 		{
 			error("type expected", tp.location());
 			return nullptr;
@@ -328,9 +328,10 @@ namespace vm
 
 		push_scope();
 
+		typedef Signature::ParametersType ParametersType;
 		ParametersType::const_iterator const begin(sign->begin());
 		ParametersType::const_iterator const end(sign->end());
-		for (ParametersType::const_iterator it = begin(); it != end(); ++it)
+		for (ParametersType::const_iterator it = begin; it != end; ++it)
 		{
 			std::unique_ptr<Variable> var(new Variable(it->first, it->second, tp.location(), location()));
 			scope()->define_variable(std:move(var));
