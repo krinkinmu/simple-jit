@@ -530,7 +530,7 @@ namespace vm
 
 		scope()->define_variable(std::move(variable));
 
-		return std::unique_ptr<StoreNode>(new StoreNode(ptr, std::move(expr), name.location(), location()));
+		return std::unique_ptr<StoreNode>(new StoreNode(ptr, std::move(expr), Token::assign, name.location(), location()));
 	}
 
 	std::unique_ptr<ASTNode> Parser::parse_expression()
