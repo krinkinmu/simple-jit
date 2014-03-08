@@ -581,7 +581,7 @@ namespace vm
 			std::unique_ptr<ASTNode> expr = parse_unary();
 			if (!expr)
 				return nullptr;
-			return new UnaryExprNode(op.kind(), expr, op.location(), expr.finish());
+			return new UnaryExprNode(op.kind(), std::move(expr), op.location(), expr->finish());
 		}
 
 		if (peek_token() == Token::ident && peek_token(1) == Token::lparen)
@@ -608,7 +608,7 @@ namespace vm
 		if (peek_token() == Token::string_l)
 		{
 			Token const tok = extract_token();
-			return new StringLitNode(tok.value(), tok.location(), tok.location());
+			return std::unique_ptr<ASTNode>(new StringLitNode(tok.value(), tok.location(), tok.location()));
 		}
 
 		if (ensure_token(Token::lparen))
