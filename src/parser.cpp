@@ -32,7 +32,7 @@ namespace vm
 	{ clear(); }
 
 	void Parser::error(std::string message, Location loc)
-	{ status_->swap(Status(Status::ERROR, message, loc)); }
+	{ Status(Status::ERROR, message, loc).swap(*status_); }
 
 	bool Parser::is_ok() const noexcept
 	{ return status_->code() != Status::ERROR; }
