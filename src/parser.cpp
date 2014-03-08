@@ -142,7 +142,7 @@ namespace vm
 				if (!fun)
 					return nullptr;
 
-				scope()->define_function(fun);
+				scope()->define_function(std::move(fun));
 				continue;
 			}
 
@@ -151,7 +151,7 @@ namespace vm
 				return nullptr;
 
 			if (stmt)
-				blk->push_back(stmt);
+				blk->push_back(std::move(stmt));
 		}
 
 		pop_scope();
@@ -221,7 +221,7 @@ namespace vm
 		if (!expr)
 			return nullptr;
 
-		return new StoreNode(variable, expr, op, var.location(), expr->finish());
+		return new StoreNode(variable, std::move(expr), op, var.location(), expr->finish());
 	}
 
 	std::unique_ptr<CallNode> Parser::parse_call()
@@ -242,7 +242,7 @@ namespace vm
 			std::unique_ptr<ASTNode> arg = parse_expression();
 			if (!arg)
 				return nullptr;
-			call->push_back(arg);
+			call->push_back(std::move(arg));
 
 			if (!ensure_token(Token::comma) && peek_token() != Token::rparen)
 			{
@@ -333,7 +333,7 @@ namespace vm
 		for (ParametersType::const_iterator it = begin(); it != end(); ++it)
 		{
 			std::unique_ptr<Variable> var(new Variable(it->first, it->second, tp.location(), location()));
-			scope()->define_variable(var);
+			scope()->define_variable(std:move(var));
 		}
 		std::unique_ptr<Block> body = parse_block();
 		if (!body)
@@ -341,7 +341,7 @@ namespace vm
 
 		pop_scope();
 
-		return new Function(sign, body, tp.location(), location());
+		return new Function(std::move(sign), std::move(body), tp.location(), location());
 	}
 
 	std::unique_ptr<WhileNode> Parser::parse_while()
