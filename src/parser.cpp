@@ -117,7 +117,7 @@ namespace vm
 				return nullptr;
 
 			if (node)
-				body->push_back(node);
+				body->push_back(std::move(node));
 		}
 
 		std::unique_ptr<Signature> sign(new Signature(Type::Void, "_start"));
