@@ -557,7 +557,7 @@ namespace vm
 				std::unique_ptr<ASTNode> right = parse_binary();
 				if (!right)
 					return nullptr;
-				left.reset(new BinaryExprNode(op.kind(), left, right, left->start(), right->finish()));
+				left.reset(new BinaryExprNode(op.kind(), std::move(left), std::move(right), left->start(), right->finish()));
 			}
 			prec = Token::get_precedence(peek_token());
 		}
