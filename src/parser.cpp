@@ -596,7 +596,7 @@ namespace vm
 				error("undefined variable", name.location());
 				return nullptr;
 			}
-			return new LoadNode(var, name.location(), name.location());
+			return std::unique_ptr<ASTNode>(new LoadNode(var, name.location(), name.location()));
 		}
 
 		if (peek_token() == Token::double_l)
@@ -645,7 +645,7 @@ namespace vm
 			return nullptr;
 		}
 
-		return new IntLitNode(num, tok.location(), tok.location());
+		return std::unique_ptr<ASTNode>(new IntLitNode(num, tok.location(), tok.location()));
 	}
 
 	std::unique_ptr<ASTNode> Parser::parse_double()
@@ -663,7 +663,7 @@ namespace vm
 			return nullptr;
 		}
 
-		return new DoubleLitNode(num, tok.location(), tok.location());
+		return std::unique_ptr<ASTNode>(new DoubleLitNode(num, tok.location(), tok.location()));
 	}
 
 }
