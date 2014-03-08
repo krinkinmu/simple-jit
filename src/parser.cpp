@@ -528,7 +528,7 @@ namespace vm
 		if (!expr)
 			return nullptr;
 
-		scope()->define_variable(variable);
+		scope()->define_variable(std::move(variable));
 
 		return std::unique_ptr<StoreNode>(new StoreNode(ptr, std::move(expr), name.location(), location()));
 	}
