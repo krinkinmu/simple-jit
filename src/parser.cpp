@@ -6,7 +6,7 @@
 namespace vm
 {
 
-	Program::Program(std::unique_ptr<Function> fun, std::unique_ptr<Scope> scope) noexcept;
+	Program::Program(std::unique_ptr<Function> fun, std::unique_ptr<Scope> scope) noexcept
 		: top_(fun.release())
 		, scope_(scope.release())
 	{ }
