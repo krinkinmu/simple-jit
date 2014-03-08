@@ -467,7 +467,7 @@ namespace vm
 		assert(ensure_token(Token::return_kw));
 
 		if (peek_token() == Token::semi)
-			return new ReturnNode(loc, loc);
+			return new ReturnNode(nullptr, loc, loc);
 
 		std::unique_ptr<ReturnNode> ret = parse_expression();
 		if (!ret)
