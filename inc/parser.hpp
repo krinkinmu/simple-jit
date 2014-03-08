@@ -74,7 +74,7 @@ namespace vm
 		std::unique_ptr<PrintNode> parse_print();
 		std::unique_ptr<ASTNode> parse_declaration();
 		std::unique_ptr<ASTNode> parse_expression();
-		std::unique_ptr<ASTNode> parse_function();
+		std::unique_ptr<Function> parse_function();
 	};
 
 }
