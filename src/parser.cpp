@@ -221,7 +221,7 @@ namespace vm
 		if (!expr)
 			return nullptr;
 
-		return std::unique_ptr<StoreNode>(new StoreNode(variable, std::move(expr), op, var.location(), expr->finish()));
+		return std::unique_ptr<StoreNode>(new StoreNode(variable, std::move(expr), op.kind(), var.location(), expr->finish()));
 	}
 
 	std::unique_ptr<CallNode> Parser::parse_call()
