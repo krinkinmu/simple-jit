@@ -61,6 +61,7 @@ namespace vm
 		std::unique_ptr<ASTNode> parse_binary(int precedence = 1);
 		std::unique_ptr<ASTNode> parse_unary();
 		std::unique_ptr<ASTNode> parse_int();
+		std::unique_ptr<ASTNode> parse_double();
 
 		std::unique_ptr<Block> parse_block();
 		std::unique_ptr<ASTNode> parse_statement();

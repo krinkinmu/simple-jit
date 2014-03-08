@@ -600,7 +600,7 @@ namespace vm
 		}
 
 		if (peek_token() == Token::double_l)
-		{ }
+			return parse_double();
 
 		if (peek_token() == Token::int_l)
 			return parse_int();
@@ -643,6 +643,24 @@ namespace vm
 		}
 
 		return new IntLitNode(num, tok.location(), tok.location());
+	}
+
+	std::unique_ptr<ASTNode> Parser::parse_double()
+	{
+		Token const tok = extract_token();
+		assert(tok.kind() == Token::double_l);
+
+		std::string const & value = tok.value();
+		char * endptr = nullptr;
+
+		double num = strtod(value.c_str(), &endptr);
+		if (endptr == nullptr || *endptr != '\0')
+		{
+			error("double literal expected", tok.location());
+			return nullptr;
+		}
+
+		return new DoubleLitNode(num, tok.location(), tok.location());
 	}
 
 }
