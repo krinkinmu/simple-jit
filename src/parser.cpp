@@ -55,7 +55,7 @@ namespace vm
 		std::unique_ptr<Function> top(parse_toplevel());
 		pop_scope();
 
-		return new Program(std::move(top), std::move(top_scope));
+		return std::unique_ptr<Program>(new Program(std::move(top), std::move(top_scope)));
 	}
 
 	void Parser::clear() noexcept
@@ -121,9 +121,8 @@ namespace vm
 		}
 
 		std::unique_ptr<Signature> sign(new Signature(Type::Void, "_start"));
-		std::unique_ptr<Function> top(new Function(sign, body));
 
-		return top;
+		return std::unique_ptr<Function>(new Function(std::move(sign), std::move(body)));
 	}
 
 	std::unique_ptr<Block> Parser::parse_block()
