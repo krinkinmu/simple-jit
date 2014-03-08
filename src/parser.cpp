@@ -413,7 +413,7 @@ namespace vm
 		if (!body)
 			return nullptr;
 
-		Variable const * const v = scope()->lookup_variable(var.value());
+		Variable * const v = scope()->lookup_variable(var.value());
 		if (!v)
 		{
 			error("unknown variable" + var.value(), var.location());
