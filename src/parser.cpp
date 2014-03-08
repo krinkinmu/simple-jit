@@ -106,7 +106,7 @@ namespace vm
 
 	std::unique_ptr<Function> Parser::parse_toplevel()
 	{
-		std::unique_ptr<Block> body = new Block(scope());
+		std::unique_ptr<Block> body(new Block(scope()));
 		while (peek_token() != Token::eof)
 		{
 			if (ensure_token(Token::semi))
@@ -120,8 +120,8 @@ namespace vm
 				body->push_back(node);
 		}
 
-		std::unique_ptr<Signature> sign = new Signature(Type::Void, "_start");
-		std::unique_ptr<Function> top = new Function(sign, body);
+		std::unique_ptr<Signature> sign(new Signature(Type::Void, "_start"));
+		std::unique_ptr<Function> top(new Function(sign, body));
 
 		return top;
 	}
@@ -237,7 +237,7 @@ namespace vm
 			return nullptr;
 		}
 
-		std::unique_ptr<CallNode> call = new CallNode(function, fun.location());
+		std::unique_ptr<CallNode> call(new CallNode(function, fun.location()));
 		while (!ensure_token(Token::rparen))
 		{
 			std::unique_ptr<ASTNode> arg = parse_expression();
@@ -296,7 +296,7 @@ namespace vm
 			return nullptr;
 		}
 
-		std::unique_ptr<Signature> sign = new Signature(detail::token_to_type(tp.kind()), nm.value());
+		std::unique_ptr<Signature> sign(new Signature(detail::token_to_type(tp.kind()), nm.value()));
 		while (!ensure_token(Token::rparen))
 		{
 			Token const param_type = extract_token();
@@ -333,7 +333,7 @@ namespace vm
 		ParametersType::const_iterator const end(sign->end());
 		for (ParametersType::const_iterator it = begin(); it != end(); ++it)
 		{
-			std::unique_ptr<Variable> var = new Variable(it->first, it->second, tp.location(), location());
+			std::unique_ptr<Variable> var(new Variable(it->first, it->second, tp.location(), location()));
 			scope()->define_variable(var);
 		}
 		std::unique_ptr<Block> body = parse_block();
@@ -488,7 +488,7 @@ namespace vm
 			return nullptr;
 		}
 
-		std::unique_ptr<PrintNode> print = new PrintNode(loc);
+		std::unique_ptr<PrintNode> print(new PrintNode(loc));
 		while (!ensure_token(Token::rparen))
 		{
 			std::unique_ptr<ASTNode> expr = parse_expression();
@@ -518,7 +518,7 @@ namespace vm
 			return nullptr;
 		}
 
-		std::unique_ptr<Variable> variable = new Variable(type, name.value(), name.location(), name.location());
+		std::unique_ptr<Variable> variable(new Variable(type, name.value(), name.location(), name.location()));
 		Variable * ptr = variable.get();
 
 		if (!ensure_token(Token::assign))
@@ -557,7 +557,7 @@ namespace vm
 				std::unique_ptr<ASTNode> right = parse_binary();
 				if (!right)
 					return nullptr;
-				left = new BinaryExprNode(op.kind(), left, right, left.start(), right.finish());
+				left.reset(new BinaryExprNode(op.kind(), left, right, left.start(), right.finish()));
 			}
 			prec = Token::get_precedence(peek_token());
 		}
