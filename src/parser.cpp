@@ -342,7 +342,7 @@ namespace vm
 
 		pop_scope();
 
-		return new Function(std::move(sign), std::move(body), tp.location(), location());
+		return std::unique_ptr<Function>(new Function(std::move(sign), std::move(body), tp.location(), location()));
 	}
 
 	std::unique_ptr<WhileNode> Parser::parse_while()
