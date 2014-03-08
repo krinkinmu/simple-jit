@@ -371,7 +371,7 @@ namespace vm
 		if (!body)
 			return nullptr;
 
-		return new WhileNode(std::move(expr), std::move(body), start, location());
+		return std::unique_ptr<WhileNode>(new WhileNode(std::move(expr), std::move(body), start, location()));
 	}
 
 	std::unique_ptr<ForNode> Parser::parse_for()
