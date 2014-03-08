@@ -202,7 +202,7 @@ namespace vm
 		return parse_expression();
 	}
 
-	std::unique_ptr<ASTNode> Parser::parse_assignment()
+	std::unique_ptr<StoreNode> Parser::parse_assignment()
 	{
 		Token const var = extract_token();
 		assert(var.kind() == Token::ident);
@@ -221,7 +221,7 @@ namespace vm
 		if (!expr)
 			return nullptr;
 
-		return new StoreNode(variable, std::move(expr), op, var.location(), expr->finish());
+		return std::unique_ptr<StoreNode>(new StoreNode(variable, std::move(expr), op, var.location(), expr->finish()));
 	}
 
 	std::unique_ptr<CallNode> Parser::parse_call()
