@@ -420,7 +420,7 @@ namespace vm
 			return nullptr;
 		}
 
-		return new ForNode(v, expr, body, start, location());
+		return new ForNode(v, std::move(expr), std::move(body), start, location());
 	}
 
 	std::unique_ptr<IfNode> Parser::parse_if()
@@ -457,7 +457,7 @@ namespace vm
 				return nullptr;
 		}
 
-		return new IfNode(expr, then_body, else_body, start, location());
+		return new IfNode(std::move(expr), std::move(then_body), std::move(else_body), start, location());
 	}
 
 	std::unique_ptr<ReturnNode> Parser::parse_return()
@@ -473,7 +473,7 @@ namespace vm
 		if (!ret)
 			return nullptr;
 
-		return new ReturnNode(ret, loc, location());
+		return new ReturnNode(std::move(ret), loc, location());
 	}
 
 	std::unique_ptr<PrintNode> Parser::parse_print()
