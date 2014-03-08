@@ -606,7 +606,10 @@ namespace vm
 			return parse_int();
 
 		if (peek_token() == Token::string_l)
-		{ }
+		{
+			Token const tok = extract_token();
+			return new StringLitNode(tok.value(), tok.location(), tok.location());
+		}
 
 		if (ensure_token(Token::lparen))
 		{
