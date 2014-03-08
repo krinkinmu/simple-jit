@@ -420,7 +420,7 @@ namespace vm
 			return nullptr;
 		}
 
-		return new ForNode(v, std::move(expr), std::move(body), start, location());
+		return std::unique_ptr<ForNode>(new ForNode(v, std::move(expr), std::move(body), start, location()));
 	}
 
 	std::unique_ptr<IfNode> Parser::parse_if()
