@@ -495,7 +495,7 @@ namespace vm
 			if (!expr)
 				return nullptr;
 
-			print->push_back(expr);
+			print->push_back(std::move(expr));
 			if (!ensure_token(Token::comma) && peek_token() != Token::rparen)
 			{
 				error(", or ) expected", location());
@@ -530,7 +530,7 @@ namespace vm
 
 		scope()->define_variable(variable);
 
-		return new StoreNode(ptr, expr, name.location(), location());
+		return std::unique_ptr<StoreNode>(new StoreNode(ptr, std::move(expr), name.location(), location()));
 	}
 
 	std::unique_ptr<ASTNode> Parser::parse_expression()
